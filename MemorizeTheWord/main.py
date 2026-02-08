@@ -1118,62 +1118,6 @@ async def chapters_topic_selected(callback: CallbackQuery):
     )
     await callback.answer()
 
-@router.callback_query(F.data.startswith("section_"))
-async def chapters_section_selected(callback: CallbackQuery):
-    # Callbackdan topic va sectionni ajratib olish
-    parts = callback.data.replace("section_", "").split("_", 1)
-    topic = parts[0]
-    section = parts[1]
-    
-    user_id = callback.from_user.id
-    lang = await user_db.get_language(user_id) or "uz"
-    
-    # Barcha savollarni (chapters) olish
-    chapters = dict_handler.get_section_chapters(user_id, topic, section)
-    
-    if not chapters:
-        await callback.answer(get_text(lang, "no_words"), show_alert=True)
-        return
-
-    from aiogram.utils.keyboard import InlineKeyboardBuilder
-    builder = InlineKeyboardBuilder()
-    
-    # 50-savolni alohida saqlash
-    main_chapters = [c for c in chapters if not c.startswith("50")]
-    has_50 = any(c.startswith("50") for c in chapters)
-
-    # Savol raqamlarini 7 ta ustun qilib terish
-    for chapter in main_chapters:
-        # Faqat raqamni olish (masalan "1-savol" -> "1")
-        chapter_num = chapter.split("-")[0]
-        builder.button(
-            text=chapter_num, 
-            callback_data=f"chapter_{topic}_{section}_{chapter}"
-        )
-    
-    # 7 ta ustunli qatlam
-    builder.adjust(7)
-
-    # 50-savol bo'lsa, uni eng pastga alohida qator qilib qo'shish
-    if has_50:
-        builder.row(InlineKeyboardButton(
-            text="50", 
-            callback_data=f"chapter_{topic}_{section}_50-savol"
-        ))
-
-    # Orqaga qaytish tugmasi
-    builder.row(InlineKeyboardButton(
-        text=get_text(lang, "back"), 
-        callback_data=f"topic_{topic}"
-    ))
-
-    await callback.message.edit_text(
-        get_text(lang, "chapters_select_chapter", topic=topic, section=section.title()),
-        reply_markup=builder.as_markup(),
-        parse_mode="HTML"
-    )
-    await callback.answer()
-
 @router.callback_query(F.data.startswith("chapter_"))
 async def chapters_chapter_selected(callback: CallbackQuery):
     parts = callback.data.replace("chapter_", "").split("_", 2)
