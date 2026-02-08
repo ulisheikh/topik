@@ -117,6 +117,9 @@ ALL_TEXTS = {
         "about_bot_btn": "ℹ️ Bot haqida",
         "change_language": "🌐 Tilni o'zgartirish",
         "stop_game": "🛑 To'xtatish",
+        "settings_menu": "⚙️ <b>Sozlamalar menyusi</b>\n\nBu yerda tilni o'zgartirishingiz yoki bot sozlamalarini tahrirlashingiz mumkin:", # QO'SHILDI
+        "format_hint": "Format: [Savol]-[So'zlar soni]", # QO'SHILDI
+        "select_chapter_title": "📚 <b>{topic}-Topik | {section}</b>", # QO'SHILDI
 
         # START VA STATISTIKA
         "start_message": "🎓 <b>Memorize Bot'ga xush kelibsiz!</b>\n\nBu bot TOPIK so'zlarini smart tarzda yodlashga yordam beradi.\n\n📊 <b>Bot ma'lumotlari:</b>\n👥 Foydalanuvchilar: {users}\n📚 Topiklar: {topics}\n📖 Jami so'zlar: {words}\n\nQuyidagi tugmalardan foydalaning! 👇",
@@ -166,7 +169,7 @@ ALL_TEXTS = {
         "admin_user_unblocked": "✅ Foydalanuvchi blokdan chiqarildi!",
         "chapters_select_topic": "📚 <b>Topikni tanlang:</b>",
         "chapters_select_section": "📖 <b>{topic}</b>\n\nBo'limni tanlang:",
-        "chapters_select_chapter": "📖 <b>{topic} > {section}</b>\n\nSavolni tanlang:",  # ← YANGI!
+        "chapters_select_chapter": "📖 <b>{topic} > {section}</b>\n\nSavolni tanlang:",
         "chapters_words": "📝 <b>{topic} > {section} > {chapter}</b>\n\nSo'zlar:\n\n{words}",
         "chapters_no_words": "❌ Bu bo'limda so'zlar yo'q!",
     },
@@ -185,6 +188,9 @@ ALL_TEXTS = {
         "about_bot_btn": "ℹ️ 봇 정보",
         "change_language": "🌐 언어 변경",
         "stop_game": "🛑 중지",
+        "settings_menu": "⚙️ <b>설정 메뉴</b>\n\n여기에서 언어를 변경하거나 봇 설정을 편집할 수 있습니다:", # QO'SHILDI
+        "format_hint": "형식: [문항]-[단어 수]", # QO'SHILDI
+        "select_chapter_title": "📚 <b>{topic}-토픽 | {section}</b>", # QO'SHILDI
 
         # START VA STATISTIKA
         "start_message": "🎓 <b>Memorize Bot에 오신 것을 환영합니다!</b>\n\n이 봇은 TOPIK 단어를 스마트하게 암기하는 데 도움을 줍니다.\n\n📊 <b>봇 정보:</b>\n👥 사용자: {users}\n📚 토픽: {topics}\n📖 총 단어: {words}\n\n아래 버튼을 사용하세요! 👇",
@@ -234,11 +240,11 @@ ALL_TEXTS = {
         "admin_user_unblocked": "✅ 사용자 차단이 해제되었습니다!",
         "chapters_select_topic": "📚 <b>토픽 선택:</b>",
         "chapters_select_section": "📖 <b>{topic}</b>\n\n섹션 선택:",
-        "chapters_select_chapter": "📖 <b>{topic} > {section}</b>\n\n질문 선택:",  # ← YANGI!
+        "chapters_select_chapter": "📖 <b>{topic} > {section}</b>\n\n질문 선택:",
         "chapters_words": "📝 <b>{topic} > {section} > {chapter}</b>\n\n단어:\n\n{words}",
         "chapters_no_words": "❌ 이 섹션에 단어가 없습니다!",
         
-        # EXAM (YANGI)
+        # EXAM
         "exam_select_mode": "📝 시험 유형을 선택하세요:",
         "exam_select_topic": "📚 토픽을 선택하세요:",
         "exam_select_section": "📚 {topic_num}-토픽\n\n섹션을 선택하세요:",
@@ -246,7 +252,6 @@ ALL_TEXTS = {
         "exam_no_words": "❌ 단어가 없습니다!",
     }
 }
-
 def get_text(lang, key, **kwargs):
     # Til kodlarini standartlashtirish
     target_lang = "ko" if lang in ["ko", "kr", "kr"] else "uz"
@@ -1092,6 +1097,7 @@ async def send_auto_words():
             
         await asyncio.sleep(20) # Bazani tekshirish oralig'i
 # ==================== BO'LIMLAR ====================
+from aiogram.utils.keyboard import InlineKeyboardBuilder
 
 @router.callback_query(F.data == "chapters_main")
 async def chapters_main_handler(callback: CallbackQuery):
@@ -1118,6 +1124,61 @@ async def chapters_topic_selected(callback: CallbackQuery):
     )
     await callback.answer()
 
+@router.callback_query(F.data.startswith("section_"))
+async def chapters_section_selected(callback: CallbackQuery):
+    parts = callback.data.replace("section_", "").split("_", 1)
+    topic = parts[0]
+    section = parts[1]
+    
+    user_id = callback.from_user.id
+    lang = await user_db.get_language(user_id) or "uz"
+    
+    # Ma'lumotlarni yuklash
+    data = dict_handler.load_user_data(user_id)
+    topic_key = f"Topik-{topic.replace('-topik', '')}"
+    
+    section_data = {}
+    if topic_key in data and section in data[topic_key]:
+        section_data = data[topic_key][section]
+
+    builder = InlineKeyboardBuilder()
+    
+    # 1. 1-dan 49-savolgacha (7 ta ustun)
+    for i in range(1, 50):
+        chapter_key = f"{i}-savol so'zlari"
+        word_count = len(section_data.get(chapter_key, {}))
+        
+        # Format: 1-0, 1-12 va hokazo
+        btn_text = f"{i}-{word_count}"
+        
+        builder.button(
+            text=btn_text, 
+            callback_data=f"chapter_{topic}_{section}_{i}-savol"
+        )
+    
+    builder.adjust(7)
+
+    # 2. 50-savol (eng pastda, "savol" so'zisiz)
+    ch50_key = "50-savol so'zlari"
+    count50 = len(section_data.get(ch50_key, {}))
+    builder.row(InlineKeyboardButton(
+        text=f"50-{count50}", 
+        callback_data=f"chapter_{topic}_{section}_50-savol"
+    ))
+
+    # 3. Orqaga qaytish
+    builder.row(InlineKeyboardButton(
+        text=get_text(lang, "back"), 
+        callback_data=f"topic_{topic}"
+    ))
+
+    await callback.message.edit_text(
+        text=f"📚 <b>{topic.upper()} | {section.upper()}</b>\n\nFormat: [Savol]-[So'zlar soni]",
+        reply_markup=builder.as_markup(),
+        parse_mode="HTML"
+    )
+    await callback.answer()
+
 @router.callback_query(F.data.startswith("chapter_"))
 async def chapters_chapter_selected(callback: CallbackQuery):
     parts = callback.data.replace("chapter_", "").split("_", 2)
@@ -1131,10 +1192,12 @@ async def chapters_chapter_selected(callback: CallbackQuery):
     words = dict_handler.get_chapter_words(user_id, topic, section, chapter)
     
     if not words:
-        await callback.answer(get_text(lang, "no_words"), show_alert=True)
+        # Raqamni ajratib ko'rsatish: "1-savol" -> "1"
+        ch_num = chapter.split("-")[0]
+        await callback.answer(f"⚠️ {ch_num}-savolda so'zlar yo'q", show_alert=True)
         return
     
-    text = f"📚 <b>{chapter}</b>\n\n"
+    text = f"📚 <b>{chapter.replace('-', ' ').title()}</b>\n\n"
     for korean, uzbek in words.items():
         text += f"🇰🇷 {korean} – 🇺🇿 {uzbek}\n"
     
