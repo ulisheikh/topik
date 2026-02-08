@@ -98,9 +98,7 @@
                 "강": "Sabr"
             },
             "3-savol so'zlari": {},
-            "50-savol so'zlari": {
-                "ㅓ너": "Salom"
-            }
+            "50-savol so'zlari": {}
         },
         "writing": {
             "1-savol so'zlari": {
@@ -113,7 +111,7 @@
             }
         }
     },
-    "Topik-45": {
+    "Topik-33": {
         "reading": {
             "1-savol so'zlari": {},
             "2-savol so'zlari": {},

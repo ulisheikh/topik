@@ -69,12 +69,16 @@ def get_topics_inline(topics_list, uid):
     for i in range(0, len(buttons), 4):
         markup.row(*buttons[i:i+4])
     
-    # ADD tugmasi
+    # ADD va DELETE tugmalari
     add_btn = InlineKeyboardButton(
         text="➕ ADD",
         callback_data="add_topic"
     )
-    markup.row(add_btn)
+    delete_btn = InlineKeyboardButton(
+        text="🗑️ DELETE",
+        callback_data="delete_topic"
+    )
+    markup.row(add_btn, delete_btn)
     
     return markup
 
@@ -117,13 +121,14 @@ def get_sections_inline(topic_num, uid):
 # SAVOLLAR INLINE
 # ============================================
 
-def get_questions_inline(topic_num, section_type, uid):
+def get_questions_inline(topic_num, section_type, uid, questions_data=None):
     """
     Savollar ro'yxati
     topic_num = 35
     section_type = 'r' (reading), 'w' (writing), 'l' (listening)
+    questions_data = {1: 5, 9: 1, 50: 30, ...} (savol: so'zlar_soni)
     
-    Reading/Listening: 1-50 (10x5)
+    Reading/Listening: 1-50 (7 ustun)
     Writing: 51-54
     """
     lang = get_user_language(uid)
@@ -136,8 +141,13 @@ def get_questions_inline(topic_num, section_type, uid):
         
         buttons = []
         for q_num in questions:
+            # So'zlar sonini olish
+            word_count = 0
+            if questions_data and q_num in questions_data:
+                word_count = questions_data[q_num]
+            
             btn = InlineKeyboardButton(
-                text=str(q_num),
+                text=f"{q_num}-{word_count}",
                 callback_data=f"question_{topic_num}_{section_type}_{q_num}"
             )
             buttons.append(btn)
@@ -151,8 +161,13 @@ def get_questions_inline(topic_num, section_type, uid):
         
         buttons = []
         for q_num in questions:
+            # So'zlar sonini olish
+            word_count = 0
+            if questions_data and q_num in questions_data:
+                word_count = questions_data[q_num]
+            
             btn = InlineKeyboardButton(
-                text=str(q_num),
+                text=f"{q_num}-{word_count}",
                 callback_data=f"question_{topic_num}_{section_type}_{q_num}"
             )
             buttons.append(btn)

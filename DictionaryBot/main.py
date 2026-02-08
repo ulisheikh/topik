@@ -366,7 +366,7 @@ def callback_handler(call):
         )
     
     # ============================================
-    # BO'LIM TANLASH: section_35_r
+    # BO'LIM TANLASH: section_35_r (SO'ZLAR SONI BILAN)
     # ============================================
     elif data_str.startswith('section_'):
         parts = data_str.split('_')  # ['section', '35', 'r']
@@ -381,16 +381,55 @@ def callback_handler(call):
         }
         section_name = section_names[section_type]
         
-        # Savollar inline
-        markup = get_questions_inline(topic_num, section_type, uid)
+        # Ma'lumotlarni yuklash
+        data = load_user_data(uid)
+        topic_key = f'Topik-{topic_num}'
         
-        msg = get_text(uid, f'questions_header_{section_name.lower()}').format(topic_num) + '\n\n'
+        # Bo'lim nomi
+        section_map = {
+            'r': 'reading',
+            'w': 'writing',
+            'l': 'listening'
+        }
+        section = section_map[section_type]
+        
+        # So'zlar sonini hisoblash har bir savol uchun
+        questions_data = {}
+        
+        if topic_key in data and section in data[topic_key]:
+            questions = data[topic_key][section]
+            
+            # Savol raqamlarini aniqlash
+            if section_type == 'w':
+                question_range = range(51, 55)  # 51-54
+            else:
+                question_range = range(1, 51)   # 1-50
+            
+            for q_num in question_range:
+                q_key = f"{q_num}-savol so'zlari"
+                if q_key in questions:
+                    questions_data[q_num] = len(questions[q_key])
+                else:
+                    questions_data[q_num] = 0
+        
+        # Savollar inline - so'zlar soni bilan
+        markup = get_questions_inline(topic_num, section_type, uid, questions_data)
+        
+        # Statistika
+        total_questions = len([q for q in questions_data.values() if q > 0])
+        total_words = sum(questions_data.values())
+        
+        msg = f"📖 <b>{topic_num}-TOPIK > {section_name}</b>\n"
+        msg += "━━━━━━━━━━━━━━━━━\n\n"
+        msg += f"📊 So'zli savollar: {total_questions} ta\n"
+        msg += f"📚 Jami so'zlar: {total_words} ta\n\n"
         msg += get_text(uid, 'select_question')
         
         bot.edit_message_text(
             msg,
             uid,
             call.message.id,
+            parse_mode='HTML',
             reply_markup=markup
         )
     
@@ -540,6 +579,84 @@ def callback_handler(call):
         }
         
         bot.answer_callback_query(call.id)
+    
+    # ============================================
+    # TOPIKNI O'CHIRISH: delete_topic
+    # ============================================
+    elif data_str == 'delete_topic':
+        msg = "🗑️ <b>TOPIKNI O'CHIRISH</b>\n\n"
+        msg += "Qaysi topikni o'chirmoqchisiz?\n\n"
+        msg += "Topik raqamini kiriting:\n"
+        msg += "Masalan: <code>45</code>"
+        
+        markup = types.InlineKeyboardMarkup()
+        markup.add(types.InlineKeyboardButton(
+            text="◀️ Bekor qilish",
+            callback_data="back_topics"
+        ))
+        
+        bot.edit_message_text(
+            msg,
+            uid,
+            call.message.id,
+            parse_mode="HTML",
+            reply_markup=markup
+        )
+        
+        # State saqlash
+        user_context[uid] = {
+            'action': 'deleting_topic',
+            'message_id': call.message.id
+        }
+        
+        bot.answer_callback_query(call.id)
+    
+    # ============================================
+    # TOPIK O'CHIRISHNI TASDIQLASH: confirm_delete_45
+    # ============================================
+    elif data_str.startswith('confirm_delete_'):
+        topic_num = int(data_str.replace('confirm_delete_', ''))
+        topic_key = f"Topik-{topic_num}"
+        
+        # Ma'lumotlarni yuklash
+        data = load_user_data(uid)
+        
+        if topic_key not in data:
+            bot.answer_callback_query(call.id, "❌ Topik topilmadi!")
+            return
+        
+        # Backup yaratish
+        backup_data = {
+            'type': 'topic',
+            'topic': topic_key,
+            'content': data[topic_key]
+        }
+        create_backup(uid, 'topic', backup_data, f"{topic_num}")
+        
+        # O'chirish
+        del data[topic_key]
+        save_user_data(uid, data)
+        
+        # Xabar
+        msg = f"✅ <b>{topic_num}-topik o'chirildi!</b>\n\n"
+        msg += "🔄 Tiklash uchun:\n"
+        msg += f"<code>rs.{topic_num}</code>"
+        
+        markup = types.InlineKeyboardMarkup()
+        markup.add(types.InlineKeyboardButton(
+            text="◀️ Topiklar ro'yxatiga qaytish",
+            callback_data="back_topics"
+        ))
+        
+        bot.edit_message_text(
+            msg,
+            uid,
+            call.message.id,
+            parse_mode="HTML",
+            reply_markup=markup
+        )
+        
+        bot.answer_callback_query(call.id, "✅ O'chirildi!")
     
     # ============================================
     # ORTGA TUGMALARI
@@ -840,6 +957,91 @@ def text_handler(message):
         
         # Context tozalash
         del user_context[uid]
+    
+    # ============================================
+    # TOPIKNI O'CHIRISH - Raqam kiritish
+    # ============================================
+    elif action == 'deleting_topic':
+        try:
+            topic_num = int(text)
+            topic_key = f"Topik-{topic_num}"
+            
+            # Ma'lumotlarni yuklash
+            data = load_user_data(uid)
+            
+            if topic_key not in data:
+                bot.send_message(uid, f"❌ {topic_num}-topik topilmadi!")
+                return
+            
+            # Statistikani hisoblash
+            stats = {}
+            total_words = 0
+            
+            for section, questions in data[topic_key].items():
+                section_words = 0
+                for q_key, words in questions.items():
+                    section_words += len(words)
+                stats[section] = section_words
+                total_words += section_words
+            
+            # Tasdiqlash xabari
+            msg = f"⚠️ <b>TASDIQLASH</b>\n\n"
+            msg += f"<b>{topic_num}-topikni</b> o'chirmoqchimisiz?\n\n"
+            msg += "📊 <b>Statistika:</b>\n"
+            
+            if 'reading' in stats:
+                msg += f"📖 Reading: {stats['reading']} ta so'z\n"
+            if 'writing' in stats:
+                msg += f"✍️ Writing: {stats['writing']} ta so'z\n"
+            if 'listening' in stats:
+                msg += f"🎧 Listening: {stats['listening']} ta so'z\n"
+            
+            msg += f"\n<b>JAMI: {total_words} ta so'z</b>\n\n"
+            msg += "❗ Barcha ma'lumotlar o'chib ketadi!"
+            
+            # Inline tugmalar
+            markup = types.InlineKeyboardMarkup()
+            markup.row(
+                types.InlineKeyboardButton(
+                    text="✅ Ha, o'chirish",
+                    callback_data=f"confirm_delete_{topic_num}"
+                ),
+                types.InlineKeyboardButton(
+                    text="❌ Yo'q",
+                    callback_data="back_topics"
+                )
+            )
+            
+            # Eski xabarni tahrirlash
+            message_id = ctx.get('message_id')
+            if message_id:
+                try:
+                    bot.edit_message_text(
+                        msg,
+                        uid,
+                        message_id,
+                        parse_mode="HTML",
+                        reply_markup=markup
+                    )
+                except:
+                    bot.send_message(uid, msg, parse_mode="HTML", reply_markup=markup)
+            else:
+                bot.send_message(uid, msg, parse_mode="HTML", reply_markup=markup)
+            
+            # User xabarini o'chirish
+            try:
+                bot.delete_message(uid, message.message_id)
+            except:
+                pass
+            
+            # State tozalash
+            user_context[uid]['action'] = None
+            
+        except ValueError:
+            bot.send_message(uid, "❌ Noto'g'ri format! Raqam kiriting.")
+        except Exception as e:
+            bot.send_message(uid, f"❌ Xatolik: {e}")
+            user_context[uid]['action'] = None
     
     # ============================================
     # SO'Z QO'SHISH
