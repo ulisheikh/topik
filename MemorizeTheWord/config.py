@@ -23,7 +23,7 @@ AUTO_MODE_WORDS_MAX = 15  # Maksimal so'zlar soni
 
 # EXAM TIZIMI
 EXAM_AUTO_TIME = "05:00"  # Soat 05:00
-EXAM_WORDS_PER_FILE = 100  # Har bir faylda 23 ta so'z
+EXAM_WORDS_PER_FILE = 20  # Har bir faylda 23 ta so'z
 TEMP_DIR = "temp"  # Vaqtinchalik fayllar
 
 # Word o'lchamlari (A5)
