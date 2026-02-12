@@ -23,7 +23,7 @@ def set_cell_border(cell, **kwargs):
     tcPr.append(tcBorders)
 
 def create_exam_word(words, location=None, mode="kr_to_uz"):
-    """BARCHA so'zlarni bir faylda chiqarish - 25 tadan listlar bo'lib"""
+    """BARCHA so'zlarni bir faylda chiqarish - 20 tadan listlar bo'lib"""
     doc = Document()
 
     # A5 format
@@ -36,7 +36,7 @@ def create_exam_word(words, location=None, mode="kr_to_uz"):
     section.right_margin = Cm(0.8)
 
     # So'zlarni 25 tadan guruhlar bo'lib ajratish
-    groups = split_words_into_groups(words, 25)
+    groups = split_words_into_groups(words)
     
     # Har bir guruh uchun alohida jadval yaratish
     for group_num, group_words in enumerate(groups, 1):
@@ -115,7 +115,7 @@ def create_exam_word(words, location=None, mode="kr_to_uz"):
     
     return filepath
 
-def split_words_into_groups(words, words_per_file=25):
+def split_words_into_groups(words, words_per_file=20):
     groups = []
     for i in range(0, len(words), words_per_file):
         groups.append(words[i:i + words_per_file])
