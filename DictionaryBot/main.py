@@ -905,6 +905,67 @@ def text_handler(message):
     uid = message.from_user.id
     text = message.text.strip()
     
+    # ============================================
+    # SO'Z QIDIRISH - s.so'z yoki S.so'z
+    # ============================================
+    if text.lower().startswith('s.') and len(text) > 2:
+        search_word = text[2:].strip()
+        
+        if not search_word:
+            bot.send_message(uid, "❌ So'z kiriting! Masalan: s.사과 yoki s.olma")
+            return
+        
+        # Ma'lumotlarni yuklash
+        data = load_user_data(uid)
+        results = []
+        
+        # Barcha topiklar, bo'limlar va savollarni qidirish
+        for topic_key, topic_data in data.items():
+            if not topic_key.startswith("Topik-"):
+                continue
+            
+            topic_num = topic_key.replace("Topik-", "")
+            
+            for section_name, questions in topic_data.items():
+                # Section nomini aniqlash
+                section_display = {
+                    'reading': 'Reading',
+                    'writing': 'Writing',
+                    'listening': 'Listening'
+                }
+                section_text = section_display.get(section_name, section_name)
+                
+                for question_key, words in questions.items():
+                    question_num = question_key.replace("-savol so'zlari", "")
+                    
+                    # So'zlarni qidirish
+                    for korean, uzbek in words.items():
+                        if search_word in korean or search_word in uzbek:
+                            results.append({
+                                'topic': topic_num,
+                                'section': section_text,
+                                'question': question_num,
+                                'korean': korean,
+                                'uzbek': uzbek
+                            })
+        
+        # Natijalarni ko'rsatish
+        if not results:
+            bot.send_message(uid, f"❌ So'z topilmadi: <b>{search_word}</b>", parse_mode='HTML')
+            return
+        
+        msg = f"🔍 <b>QIDIRUV NATIJALARI</b>\n"
+        msg += f"So'z: <b>{search_word}</b>\n"
+        msg += f"Topildi: <b>{len(results)} ta</b>\n"
+        msg += "━━━━━━━━━━━━━━━━━\n\n"
+        
+        for idx, result in enumerate(results, 1):
+            msg += f"{idx}. 📍 <b>{result['topic']}-topik > {result['section']} > {result['question']}-savol</b>\n"
+            msg += f"   {result['korean']} → {result['uzbek']}\n\n"
+        
+        bot.send_message(uid, msg, parse_mode='HTML')
+        return
+    
     # Context borligini tekshirish
     if uid not in user_context:
         return

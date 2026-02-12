@@ -639,7 +639,28 @@ async def game_general_mode(callback: CallbackQuery, state: FSMContext):
     user_id = callback.from_user.id
     lang = await user_db.get_language(user_id) or "uz"
     
-    # get_next_word o'rniga yangi yozgan get_random_word funksiyangizni ishlatamiz
+    # Direction tanlash klaviaturasi
+    keyboard = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="🇺🇿 Uz → 🇰🇷 Ko", callback_data="game_dir_general_uz_ko")],
+        [InlineKeyboardButton(text="🇰🇷 Ko → 🇺🇿 Uz", callback_data="game_dir_general_ko_uz")],
+        [InlineKeyboardButton(text="◀️ Orqaga", callback_data="game_back_to_mode")]
+    ])
+    
+    await callback.message.edit_text(
+        "🎮 <b>Tarjima yo'nalishini tanlang:</b>",
+        reply_markup=keyboard,
+        parse_mode="HTML"
+    )
+    await callback.answer()
+
+# Direction tanlanganidan keyin umumiy rejim boshlash:
+@router.callback_query(F.data.startswith("game_dir_general_"))
+async def game_general_direction_selected(callback: CallbackQuery, state: FSMContext):
+    user_id = callback.from_user.id
+    lang = await user_db.get_language(user_id) or "uz"
+    
+    direction = callback.data.replace("game_dir_general_", "")  # uz_ko yoki ko_uz
+    
     word = dict_handler.get_random_word(user_id)
     
     if not word:
@@ -652,22 +673,27 @@ async def game_general_mode(callback: CallbackQuery, state: FSMContext):
         current_word=word,
         start_time=datetime.now().timestamp(),
         question_count=1,
-        mode='general'
+        mode='general',
+        direction=direction  # ← YANGI
     )
     
+    # Direction ga qarab savol yaratish
+    if direction == "uz_ko":
+        question_text = word['uzbek']
+        answer_lang = "Koreys"
+    else:  # ko_uz
+        question_text = word['korean']
+        answer_lang = "O'zbek"
+    
     await callback.message.edit_text(
-        get_text(
-            lang, "game_question",
-            uzbek=word['uzbek'],
-            topic=word['topic'],
-            section=word['section'],
-            chapter=word['chapter'],
-            count=1
-        ),
+        f"🎮 <b>Savol #1:</b>\n>>> <i>{question_text}</i>\n\n"
+        f"📍 {word['topic']} › {word['section']} › {word['chapter']}\n"
+        f"📝 {answer_lang} tilida yozing:",
         reply_markup=get_game_keyboard(lang),
         parse_mode="HTML"
     )
     await callback.answer()
+
 
 # ============================================
 # BELGILANGAN REJIM - TOPIK TANLASH
@@ -729,6 +755,33 @@ async def game_select_section(callback: CallbackQuery, state: FSMContext):
     topic = parts[0]
     section = parts[1]
     
+    # Topik va sectionni saqlash
+    await state.update_data(selected_topic=topic, selected_section=section)
+    
+    # Direction tanlash klaviaturasi
+    keyboard = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="🇺🇿 Uz → 🇰🇷 Ko", callback_data="game_dir_custom_uz_ko")],
+        [InlineKeyboardButton(text="🇰🇷 Ko → 🇺🇿 Uz", callback_data="game_dir_custom_ko_uz")],
+        [InlineKeyboardButton(text="◀️ Orqaga", callback_data=f"game_topic_{topic}")]
+    ])
+    
+    await callback.message.edit_text(
+        "🎮 <b>Tarjima yo'nalishini tanlang:</b>",
+        reply_markup=keyboard,
+        parse_mode="HTML"
+    )
+    await callback.answer()
+
+@router.callback_query(F.data.startswith("game_dir_custom_"))
+async def game_custom_direction_selected(callback: CallbackQuery, state: FSMContext):
+    user_id = callback.from_user.id
+    lang = await user_db.get_language(user_id) or "uz"
+    
+    direction = callback.data.replace("game_dir_custom_", "")  # uz_ko yoki ko_uz
+    data = await state.get_data()
+    topic = data.get('selected_topic')
+    section = data.get('selected_section')
+    
     # Bo'limdan birinchi so'zni olish
     word = dict_handler.get_random_word(user_id, topic=topic, section=section)
     
@@ -742,14 +795,24 @@ async def game_select_section(callback: CallbackQuery, state: FSMContext):
         section=section,
         current_word=word,
         start_time=datetime.now().timestamp(),
-        question_count=1
+        question_count=1,
+        direction=direction  # ← YANGI
     )
     await state.set_state(GameModeState.playing)
     
+    # Direction ga qarab savol yaratish
+    if direction == "uz_ko":
+        question_text = word['uzbek']
+        answer_lang = "Koreys"
+    else:  # ko_uz
+        question_text = word['korean']
+        answer_lang = "O'zbek"
+    
     await callback.message.edit_text(
         get_text(lang, "game_starting_custom", topic=topic, section=section) + "\n\n" +
-        get_text(lang, "game_question", uzbek=word['uzbek'], topic=topic, section=section, 
-                      chapter=word.get('chapter', '---'), count=1),
+        f"🎮 <b>Savol #1:</b>\n>>> <i>{question_text}</i>\n\n"
+        f"📍 {topic} › {section} › {word.get('chapter', '---')}\n"
+        f"📝 {answer_lang} tilida yozing:",
         reply_markup=get_game_keyboard(lang),
         parse_mode="HTML"
     )
@@ -766,11 +829,21 @@ async def process_game_answer(message: Message, state: FSMContext):
     data = await state.get_data()
     
     word = data.get('current_word')
+    direction = data.get('direction', 'uz_ko')  # Default uz_ko
+    
     if not word:
         return
 
     user_answer = message.text.strip().lower()
-    correct_answer = word['korean'].strip().lower()
+    
+    # Direction ga qarab to'g'ri javobni aniqlash
+    if direction == "uz_ko":
+        correct_answer = word['korean'].strip().lower()
+        correct_display = word['korean']
+    else:  # ko_uz
+        correct_answer = word['uzbek'].strip().lower()
+        correct_display = word['uzbek']
+    
     is_correct = (user_answer == correct_answer)
     
     # Statistika
@@ -778,11 +851,11 @@ async def process_game_answer(message: Message, state: FSMContext):
     time_spent = int(datetime.now().timestamp() - start_time)
     await user_db.update_statistics(user_id, is_correct, time_spent)
     
-    # Natija matni (Tilga qarab)
+    # Natija matni
     if is_correct:
-        feedback = f"✅ <b>To'g'ri!</b>\n🇰🇷 {word['korean']}" if lang == "uz" else f"✅ <b>정답입니다!</b>\n🇰🇷 {word['korean']}"
+        feedback = f"✅ <b>To'g'ri!</b>\n✔️ {correct_display}"
     else:
-        feedback = f"❌ <b>Noto'g'ri!</b>\nTo'g'ri: <code>{word['korean']}</code>" if lang == "uz" else f"❌ <b>틀렸습니다!</b>\n정답: <code>{word['korean']}</code>"
+        feedback = f"❌ <b>Noto'g'ri!</b>\nTo'g'ri: <code>{correct_display}</code>"
     
     # Keyingi so'zni olish
     mode = data.get('mode', 'general')
@@ -798,25 +871,44 @@ async def process_game_answer(message: Message, state: FSMContext):
     q_count = data.get('question_count', 1) + 1
     await state.update_data(current_word=next_word, start_time=datetime.now().timestamp(), question_count=q_count)
 
-    next_question = get_text(lang, "game_question", uzbek=next_word['uzbek'], 
-                                  topic=next_word['topic'], section=next_word['section'], 
-                                  chapter=next_word['chapter'], count=q_count)
+    # Direction ga qarab keyingi savolni yaratish
+    if direction == "uz_ko":
+        question_text = next_word['uzbek']
+        answer_lang = "Koreys"
+    else:  # ko_uz
+        question_text = next_word['korean']
+        answer_lang = "O'zbek"
+
+    next_question = f"🎮 <b>Savol #{q_count}:</b>\n>>> <i>{question_text}</i>\n\n" \
+                   f"📍 {next_word['topic']} › {next_word['section']} › {next_word['chapter']}\n" \
+                   f"📝 {answer_lang} tilida yozing:"
 
     await message.answer(f"{feedback}\n\n━━━━━━━━━━━━━━\n\n{next_question}", 
                          reply_markup=get_game_keyboard(lang), parse_mode="HTML")
+
+
+# process_auto_answer ni ALMASHTIRISH:
 @router.message(AutoPlayState.playing, lambda message: not message.text.startswith('/'))
 async def process_auto_answer(message: Message, state: FSMContext):
     user_id = message.from_user.id
     lang = await user_db.get_language(user_id) or "uz"
     data = await state.get_data()
     word = data.get('current_word')
+    direction = data.get('direction', 'uz_ko')
 
     if not word: 
         return
 
-    # 1. Javobni tekshirish
+    # Javobni tekshirish
     user_answer = message.text.strip().lower()
-    correct_answer = word['korean'].strip().lower()
+    
+    # Direction ga qarab to'g'ri javob
+    if direction == "uz_ko":
+        correct_answer = word['korean'].strip().lower()
+        correct_display = word['korean']
+    else:  # ko_uz
+        correct_answer = word['uzbek'].strip().lower()
+        correct_display = word['uzbek']
     
     if user_answer == correct_answer:
         await user_db.update_statistics(user_id, True, 0)
@@ -826,54 +918,46 @@ async def process_auto_answer(message: Message, state: FSMContext):
             await message.answer(f"✅ <b>정답!</b> (자동)", parse_mode="HTML")
     else:
         await user_db.update_statistics(user_id, False, 0)
-        await message.answer(f"❌ <b>Xato!</b> 🇰🇷: <code>{word['korean']}</code>", parse_mode="HTML")
+        await message.answer(f"❌ <b>Xato!</b> ✔️: <code>{correct_display}</code>", parse_mode="HTML")
 
-    # 2. Keyingi savolga o'tish mantiqi
+    # Keyingi savolga o'tish
     current_step = data.get('auto_current_step', 1)
     max_steps = 10
 
     if current_step < max_steps:
-        # Keyingi savolni olish
-        next_word = dict_handler.get_random_word(user_id)
+        next_word = dict_handler.get_random_word(
+            user_id,
+            topic=data.get('topic'),
+            section=data.get('section')
+        )
         if next_word:
             new_step = current_step + 1
             await state.update_data(current_word=next_word, auto_current_step=new_step)
             
-            # ✅ TO'G'RI formatda matn
-            if lang == "uz":
-                text = (
-                    f"🤖 <b>(AVTOMATIK SAVOL)</b> {new_step}/10\n\n"
-                    f"⏰ So'z yodlash vaqti!\n\n"
-                    f"Sen bu so'zni bilasanmi? 🤔\n\n"
-                    f">>> <b>{next_word['uzbek']}</b>\n\n"
-                    f"📍 {next_word.get('topic', '...')} › {next_word.get('section', '...')} › {next_word.get('chapter', '...')}\n"
-                    f"📝 Koreys tilida yozing:"
-                )
-            else:
-                text = (
-                    f"🤖 <b>(자동질문 모드)</b> {new_step}/10\n\n"
-                    f"⏰ <b>단어 학습 시간!</b>\n"
-                    f"📊 <b>질문: {new_step}/10</b>\n\n"
-                    f"<i>이 단어를 알고 있나요?</i> 🤔\n\n"
-                    f">>> <i>{next_word['uzbek']}</i>\n\n"
-                    f"📍 {next_word.get('topic', '...')} › {next_word.get('section', '...')} › {next_word.get('chapter', '...')}\n"
-                    f"📝 한국어로 작성하세요:"
-                )
+            # Direction ga qarab savol
+            if direction == "uz_ko":
+                question_text = next_word['uzbek']
+                answer_lang = "Koreys"
+            else:  # ko_uz
+                question_text = next_word['korean']
+                answer_lang = "O'zbek"
             
+            text = (
+                f"🤖 <b>(AVTOMATIK SAVOL)</b> {new_step}/10\n\n"
+                f"⏰ So'z yodlash vaqti!\n\n"
+                f"Sen bu so'zni bilasanmi? 🤔\n\n"
+                f">>> <b>{question_text}</b>\n\n"
+                f"📍 {next_word.get('topic', '...')} › {next_word.get('section', '...')} › {next_word.get('chapter', '...')}\n"
+                f"📝 {answer_lang} tilida yozing:"
+            )
             await message.answer(text, parse_mode="HTML")
     else:
-        # 10 ta savol tugadi
-        await state.update_data(current_word=None)
-        if lang == "uz":
-            await message.answer(
-                f"🎉 <b>Navbatdagi 10 talik paket tugadi!</b>\n\n"
-                f"Keyingi savollar belgilangan vaqtdan so'ng yuboriladi."
-            )
-        else:
-            await message.answer(
-                f"🎉 <b>10문제 완료!</b>\n\n"
-                f"다음 문제는 설정된 시간에 전송됩니다."
-            )
+        stats = await user_db.get_statistics(user_id)
+        await message.answer(
+            f"🎉 10 ta so'z tugadi!\n\n✅ To'g'ri: {stats.get('correct', 0)}\n❌ Xato: {stats.get('wrong', 0)}",
+            parse_mode="HTML"
+        )
+
 
 # ============================================
 # O'YINNI TO'XTATISH
@@ -951,10 +1035,30 @@ async def auto_general_mode(callback: CallbackQuery, state: FSMContext):
     user_id = callback.from_user.id
     lang = await user_db.get_language(user_id) or "uz"
     
+    # Direction tanlash klaviaturasi
+    keyboard = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="🇺🇿 Uz → 🇰🇷 Ko", callback_data="auto_dir_general_uz_ko")],
+        [InlineKeyboardButton(text="🇰🇷 Ko → 🇺🇿 Uz", callback_data="auto_dir_general_ko_uz")],
+        [InlineKeyboardButton(text="◀️ Orqaga", callback_data="auto_back_to_mode")]
+    ])
+    
+    await callback.message.edit_text(
+        "🤖 <b>Avtomatik rejim uchun yo'nalishni tanlang:</b>",
+        reply_markup=keyboard,
+        parse_mode="HTML"
+    )
+    await callback.answer()
+
+@router.callback_query(F.data.startswith("auto_dir_general_"))
+async def auto_general_direction_selected(callback: CallbackQuery, state: FSMContext):
+    user_id = callback.from_user.id
+    lang = await user_db.get_language(user_id) or "uz"
+    
+    direction = callback.data.replace("auto_dir_general_", "")
     data = await state.get_data()
     interval = data.get('auto_interval', 15)
     
-    await state.update_data(mode='general', topic=None, section=None)
+    await state.update_data(mode='general', topic=None, section=None, direction=direction)
     
     msg = (f"✅ Avtomatik rejim faollashtirildi!\n⏰ Har {interval} daqiqada so'zlar keladi." if lang == "uz" 
            else f"✅ 자동 모드가 활성화되었습니다!\n⏰ {interval}분마다 단어가 전송됩니다.")
@@ -1016,20 +1120,28 @@ async def auto_select_section(callback: CallbackQuery, state: FSMContext):
     
     section = callback.data.replace("auto_section_", "")
     data = await state.get_data()
-    interval = data.get('auto_interval', 15)
     
-    await state.update_data(mode='custom', section=section)
+    await state.update_data(selected_section=section)
     
-    msg = (get_text(lang, "game_starting_custom", topic=data.get('topic'), section=section) + 
-           f"\n\n⏰ Every {interval} min.")
+    # Direction tanlash klaviaturasi
+    keyboard = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="🇺🇿 Uz → 🇰🇷 Ko", callback_data="auto_dir_custom_uz_ko")],
+        [InlineKeyboardButton(text="🇰🇷 Ko → 🇺🇿 Uz", callback_data="auto_dir_custom_ko_uz")],
+        [InlineKeyboardButton(text="◀️ Orqaga", callback_data=f"auto_topic_{data.get('topic')}")]
+    ])
     
-    await callback.message.edit_text(msg, parse_mode="HTML")
-    await state.set_state(AutoPlayState.playing)
+    await callback.message.edit_text(
+        "🤖 <b>Avtomatik rejim uchun yo'nalishni tanlang:</b>",
+        reply_markup=keyboard,
+        parse_mode="HTML"
+    )
     await callback.answer()
+
 
 # ============================================
 # AVTOMATIK YUBORISH TIZIMI (Scheduler)
 # ============================================
+# send_auto_words funksiyasini ALMASHTIRISH (1033-1098 qatorlar):
 async def send_auto_words():
     from aiogram.fsm.storage.base import StorageKey
     import time
@@ -1046,15 +1158,15 @@ async def send_auto_words():
                 if current_state == AutoPlayState.playing:
                     data = await state.get_data()
                     
-                    # Foydalanuvchi tanlagan vaqt (minutda)
                     interval_min = data.get('auto_interval', 15) 
                     interval_sec = interval_min * 60
                     last_sent = data.get('last_auto_sent', 0)
                     now = time.time()
 
-                    # Qat'iy vaqt tekshiruvi: faqat vaqti kelgandagina yuboradi
                     if now - last_sent >= interval_sec:
                         lang = await user_db.get_language(user_id) or "uz"
+                        direction = data.get('direction', 'uz_ko')
+                        
                         word = dict_handler.get_random_word(
                             user_id,
                             topic=data.get('topic'),
@@ -1062,22 +1174,28 @@ async def send_auto_words():
                         )
                         
                         if word:
-                            # Eskisini unutib, yangi paketni 1/10 dan boshlaymiz
                             await state.update_data(
                                 current_word=word, 
                                 last_auto_sent=now, 
                                 auto_current_step=1
                             )
-        
-                            # ✅ TO'G'RI (YANGI):
+                            
+                            # Direction ga qarab savol
+                            if direction == "uz_ko":
+                                question_text = word['uzbek']
+                                answer_lang = "Koreys"
+                            else:  # ko_uz
+                                question_text = word['korean']
+                                answer_lang = "O'zbek"
+                            
                             if lang == "uz":
                                 text = (
                                     f"🤖 <b>(AVTOMATIK SAVOL)</b> 1/10\n\n"
                                     f"⏰ So'z yodlash vaqti!\n\n"
                                     f"Sen bu so'zni bilasanmi? 🤔\n\n"
-                                    f">>> <b>{word['uzbek']}</b>\n\n"
+                                    f">>> <b>{question_text}</b>\n\n"
                                     f"📍 {word.get('topic', '...')} › {word.get('section', '...')} › {word.get('chapter', '...')}\n"
-                                    f"📝 Koreys tilida yozing:"
+                                    f"📝 {answer_lang} tilida yozing:"
                                 )
                             else:
                                 text = (
@@ -1085,9 +1203,9 @@ async def send_auto_words():
                                     f"⏰ <b>단어 학습 시간!</b>\n"
                                     f"📊 <b>질문: 1/10</b>\n\n"
                                     f"<i>이 단어를 알고 있나요?</i> 🤔\n\n"
-                                    f">>> <i>{word['uzbek']}</i>\n\n"
+                                    f">>> <i>{question_text}</i>\n\n"
                                     f"📍 {word.get('topic', '...')} › {word.get('section', '...')} › {word.get('chapter', '...')}\n"
-                                    f"📝 한국어로 작성하세요:"
+                                    f"📝 {answer_lang}로 작성하세요:"
                                 )
                             
                             await bot.send_message(user_id, text, parse_mode="HTML")
@@ -1095,7 +1213,8 @@ async def send_auto_words():
         except Exception as e:
             print(f"❌ send_auto_words xatosi: {e}")
             
-        await asyncio.sleep(20) # Bazani tekshirish oralig'i
+        await asyncio.sleep(20)
+
 # ==================== BO'LIMLAR ====================
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
@@ -1645,7 +1764,7 @@ async def exam_mode_selected(callback: CallbackQuery, state: FSMContext):
         location = f"{topic} › {section_korean}"
         
         # Word fayl yaratish
-        filepath = create_exam_word(words[:25], location=location, mode=mode)
+        filepath = create_exam_word(words, location=location, mode=mode)
         
         # Yuborish
         file = FSInputFile(filepath)
@@ -1656,7 +1775,7 @@ async def exam_mode_selected(callback: CallbackQuery, state: FSMContext):
             caption=f"✅ 시험지가 준비되었습니다!\n\n"
                    f"📂 {location}\n"
                    f"🔄 {mode_text}\n"
-                   f"📊 {len(words[:25])}개 단어"
+                   f"📊 {len(words)}개 단어"
         )
         
         await callback.message.delete()
@@ -1749,7 +1868,7 @@ async def exam_random_handler(callback: CallbackQuery, state: FSMContext):
     all_words = [(w['korean'], w['uzbek']) for w in all_words_data]
     random.shuffle(all_words)
     
-    await state.update_data(exam_random_words=all_words[:25])
+    await state.update_data(exam_random_words=all_words[:50])
     
     keyboard = InlineKeyboardMarkup(inline_keyboard=[
         [
@@ -1774,7 +1893,7 @@ async def exam_random_handler(callback: CallbackQuery, state: FSMContext):
     
     await callback.message.edit_text(
         f"🎲 Tasodifiy imtihon\n\n"
-        f"📊 {len(all_words[:25])}개 단어\n\n"
+        f"📊 {len(all_words[:50])}개 단어\n\n"
         f"🔄 형식을 선택하세요:",
         reply_markup=keyboard
     )

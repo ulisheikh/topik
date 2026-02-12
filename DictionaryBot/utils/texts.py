@@ -155,7 +155,7 @@ TEXTS = {
             "👥 Jami foydalanuvchilar: <b>{users}</b>\n"
             "📚 Sizning topiklar: <b>{topics}</b>\n"
             "📝 Sizning so'zlar: <b>{words}</b>\n\n"
-            "Tizim holati: <code> /status </code>\n\n"
+            "Tizim holati: <b> /status </b>\n\n"
             "💡 Kerakli tugmani bosing"
         ),
     
