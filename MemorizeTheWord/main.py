@@ -1749,7 +1749,7 @@ async def exam_mode_selected(callback: CallbackQuery, state: FSMContext):
             return
         
         # Random aralashtirish
-        random.shuffle(words)
+        # random.shuffle(words)
         
         # Bo'lim nomini koreyscha
         section_map = {
@@ -2214,7 +2214,7 @@ async def exam_mode_selected(callback: CallbackQuery, state: FSMContext):
             return
         
         # Random aralashtirish
-        random.shuffle(words)
+        # random.shuffle(words)
         
         # Bo'lim nomini koreyscha
         section_map = {
