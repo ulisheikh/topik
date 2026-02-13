@@ -1,202 +1,214 @@
 {
-  "Topik-35": {
-    "reading": {
-      "1-savol so'zlari": {},
-      "2-savol so'zlari": {},
-      "3-savol so'zlari": {},
-      "4-savol so'zlari": {},
-      "5-savol so'zlari": {},
-      "6-savol so'zlari": {},
-      "7-savol so'zlari": {},
-      "8-savol so'zlari": {},
-      "9-savol so'zlari": {
-        "박람회": "ko'rgazma,yarmarka"
-      },
-      "10-savol so'zlari": {},
-      "11-savol so'zlari": {},
-      "12-savol so'zlari": {},
-      "13-savol so'zlari": {
-        "소재로": "material sifatida"
-      },
-      "14-savol so'zlari": {},
-      "15-savol so'zlari": {
-        "등장했다": "paydo bo'ldi",
-        "운행": "qatnov",
-        "예산": "byudjet , ajratilgan mablag'",
-        "부담한다": "zimmasiga olmoq, ma'sul"
-      },
-      "16-savol so'zlari": {
-        "얽힌": "bilan bog'liq, chigallashgan,qamrab olgan",
-        "기혼": "turmush qurgan",
-        "가사": "uy ishlari",
-        "육아": "bola parvarishi",
-        "여전히": "hanuz,avvalgidek",
-        "승진하다": "lavozimi oshmoq"
-      },
-      "17-savol so'zlari": {
-        "환하다": "yorqin",
-        "둥근": "dumaloq"
-      },
-      "18-savol so'zlari": {
-        "횟수": "marta,takrorlanish soni",
-        "측정한다": "o'lchaydi,aniqlaydi",
-        "늘리다": "uzaytirmoq,ko'paytirmoq"
-      },
-      "19-savol so'zlari": {
-        "익히다": "pishirmoq",
-        "화학": "kimyo (kimyoviy)",
-        "물질": "modda",
-        "겉": "sirti,tashqi qismi,po'sti",
-        "대개": "asosan,odatda",
-        "숙성된": "pishgan,yetishtirilgan",
-        "껍질": "po'st qismi",
-        "지속적으로": "doimiy",
-        "또한": "shuningdek,yana",
-        "인공": "sun'iy"
-      },
-      "20-savol so'zlari": {},
-      "21-savol so'zlari": {
-        "수집하다": "yig'moq,to'plamoq",
-        "골치만 아프고": "faqat boshi og'rib,tashvishli bo'lib (ibora)",
-        "콧대만 높아지고": "kibrga berilish,burni ko'tarilish (ibora)",
-        "눈치만 빨라지고": "sezgir bo'lib ketish, vaziyatni tez ilg'ab olish (ibora)",
-        "비행기만 태우고": "paxta qo'yish (ibora)"
-      },
-      "22-savol so'zlari": {
-        "요인": "omil",
-        "폭이": "kengligi",
-        "풍부한": "ko'p,mo'l,serob"
-      },
-      "23-savol so'zlari": {
-        "운영하는": "boshqaradigan,yuritadigan",
-        "사정이": "holat,sharoit,vaziyat",
-        "한참을": "uzoq vaqt,ancha vaqt davomida",
-        "눈을 지그시 감고": "ko'zini ohista -sekin yummoq",
-        "내밀면서": "tutqazib ,oldinga surib",
-        "마치": "go'yo,huddi",
-        "천하를 얻다": "butun dunyoni qo'lga kiritgandek,ulkan g'alabaga erishgandek",
-        "일부를 걷어": "bir qismini yig'ib"
-      },
-      "24-savol so'zlari": {},
-      "25-savol so'zlari": {
-        "해가 되다": "salbiy ta'siri bo'lmoq",
-        "독특한": "o'ziga hos,noodatiy",
-        "통일하다": "yagona, birlashtirmoq",
-        "제자리걸음": "oldinga siljimaslik,joyida qolish",
-        "현실적인 대책": "amaliy-real chora tadbirlar",
-        "요구되다": "talab qilinmoq"
-      },
-      "26-savol so'zlari": {},
-      "27-savol so'zlari": {},
-      "28-savol so'zlari": {
-        "구속": "qamoq",
-        "반발심": "norozilik hissi",
-        "방과": "darsdan keyin",
-        "관여하다": "aralashtirmoq,qatnashtirmoq"
-      },
-      "29-savol so'zlari": {
-        "피로하다": "charchamoq,toliqmoq",
-        "간격": "masofa,oraliq",
-        "편집되어 있다": "montaj qilingan,tahrirlangan",
-        "등장인물": "qahramon,personaj",
-        "각색해서": "moslab qayta ishlangan",
-        "웹 소설": "online roman",
-        "짧은 분량": "qisqa hajmli"
-      },
-      "30-savol so'zlari": {
-        "궁중": "saroy ichida",
-        "잔치를 열다": "ziyofat uyushtirmoq",
-        "귀한": "qimmatli",
-        "성대하게": "Tantanali",
-        "행사를 치렀다": "tadbir o'tkazdi",
-        "지위": "mansab",
-        "일부 사람": "ayrim odamlar ,ba'zi kishilar",
-        "의도에서였다": "...maqsad bo'lgan",
-        "과시하다": "maqtanmoq",
-        "풍습을 널리 알리다": "urf odatni keng yoymoq",
-        "대접하다": "mehmon qilmoq"
-      },
-      "31-savol so'zlari": {
-        "과학적": "ilmiy",
-        "연구": "tadqiqot",
-        "풍경화": "manzara rasmlari",
-        "대기 상태": "atmosfera holati ,havo holati",
-        "붉다": "qizil, qip-qizil",
-        "20세기": "asr",
-        "말": "oxiri"
-      },
-      "32-savol so'zlari": {
-        "기내식": "samolyot taomi",
-        "고려하다": "hisobga olmoq, inobatga olmoq",
-        "수분이 날아가다": "namlik uchib ketmoq",
-        "고도": "balandlik",
-        "미각이 둔해지다": "ta’m bilish qobiliyati susaymoq",
-        "대비하다": "tayyorgarlik ko'rmoq, chora ko'rmoq",
-        "싣다": "yuklamoq, ortmoq",
-        "예민해지다": "sezgir bo'lib qolmoq, ta'sirchan bo'lmoq",
-        "방지하다": "oldini olmoq",
-        "기내": "samolyot ichi, bort ichi"
-      },
-      "33-savol so'zlari": {
-        "종종": "tez-tez, ba'zan",
-        "적합한": "mos, muvofiq",
-        "생존에": "yashab qolish uchun",
-        "농촌": "qishloq",
-        "상대적으로": "nisbatan",
-        "농약 사용": "pestitsid qo'llash",
-        "벌을 쫓기 위해": "hasharotlarni haydash uchun"
-      },
-      "34-savol so'zlari": {
-        "을 벌이고 있다": "..ni olib bormoqda",
-        "활성화": "faollashtirish",
-        "유도하다": "yo'naltirmoq",
-        "일수": "kunlar soni",
-        "소비": "iste'mol",
-        "2조 5천 억 원": "2 trillion 500 milliard von",
-        "경제": "iqtisodiyot",
-        "악영향": "salbiy ta'sir"
-      },
-      "35-savol so'zlari": {
-        "미혼": "turmush qurmagan",
-        "비혼": "turmush qurmaslikka qaror qilgan",
-        "독신": "yolg'iz",
-        "내주다": "bermoq",
-        "포괄하다": "o'z ichiga olmoq",
-        "인식": "tushuncha",
-        "가리키다": "ko'rsatmoq",
-        "부적절한": "nomunosib"
-      },
-      "36-savol so'zlari": {
-        "일부이다": "qismini tashkil qilmoq",
-        "전략적으로": "strategik jihatdan",
-        "연출하다": "sahnalashtirmoq",
-        "의지": "iroda",
-        "표명하다": "izhor qilmoq",
-        "빳빳한": "qattiq",
-        "무채색": "rangsiz",
-        "바람직하다": "maqsadga muvofiq",
-        "협상": "muzokara",
-        "광택": "yaltiroqlik",
-        "복장": "kiyim-bosh",
-        "상징하는": "ramziy",
-        "친근감": "samimiylik",
-        "부합하는": "mos keladigan",
-        "조성하다": "yaratmoq"
-      },
-      "37-savol so'zlari": {"조성하다": "yaratmoq"},
-      "38-savol so'zlari": {},
-      "39-savol so'zlari": {},
-      "40-savol so'zlari": {},
-      "41-savol so'zlari": {},
-      "42-savol so'zlari": {},
-      "43-savol so'zlari": {},
-      "44-savol so'zlari": {},
-      "45-savol so'zlari": {},
-      "46-savol so'zlari": {},
-      "47-savol so'zlari": {},
-      "48-savol so'zlari": {},
-      "49-savol so'zlari": {},
-      "50-savol so'zlari": {}
+    "Topik-35": {
+        "reading": {
+            "1-savol so'zlari": {},
+            "2-savol so'zlari": {},
+            "3-savol so'zlari": {},
+            "4-savol so'zlari": {},
+            "5-savol so'zlari": {},
+            "6-savol so'zlari": {},
+            "7-savol so'zlari": {},
+            "8-savol so'zlari": {},
+            "9-savol so'zlari": {
+                "박람회": "ko'rgazma,yarmarka"
+            },
+            "10-savol so'zlari": {},
+            "11-savol so'zlari": {},
+            "12-savol so'zlari": {},
+            "13-savol so'zlari": {
+                "소재로": "material sifatida"
+            },
+            "14-savol so'zlari": {},
+            "15-savol so'zlari": {
+                "등장했다": "paydo bo'ldi",
+                "운행": "qatnov",
+                "예산": "byudjet , ajratilgan mablag'",
+                "부담한다": "zimmasiga olmoq, ma'sul"
+            },
+            "16-savol so'zlari": {
+                "얽힌": "bilan bog'liq, chigallashgan,qamrab olgan",
+                "기혼": "turmush qurgan",
+                "가사": "uy ishlari",
+                "육아": "bola parvarishi",
+                "여전히": "hanuz,avvalgidek",
+                "승진하다": "lavozimi oshmoq"
+            },
+            "17-savol so'zlari": {
+                "환하다": "yorqin",
+                "둥근": "dumaloq"
+            },
+            "18-savol so'zlari": {
+                "횟수": "marta,takrorlanish soni",
+                "측정한다": "o'lchaydi,aniqlaydi",
+                "늘리다": "uzaytirmoq,ko'paytirmoq"
+            },
+            "19-savol so'zlari": {
+                "익히다": "pishirmoq",
+                "화학": "kimyo (kimyoviy)",
+                "물질": "modda",
+                "겉": "sirti,tashqi qismi,po'sti",
+                "대개": "asosan,odatda",
+                "숙성된": "pishgan,yetishtirilgan",
+                "껍질": "po'st qismi",
+                "지속적으로": "doimiy",
+                "또한": "shuningdek,yana",
+                "인공": "sun'iy"
+            },
+            "20-savol so'zlari": {},
+            "21-savol so'zlari": {
+                "수집하다": "yig'moq,to'plamoq",
+                "골치만 아프고": "faqat boshi og'rib,tashvishli bo'lib (ibora)",
+                "콧대만 높아지고": "kibrga berilish,burni ko'tarilish (ibora)",
+                "눈치만 빨라지고": "sezgir bo'lib ketish, vaziyatni tez ilg'ab olish (ibora)",
+                "비행기만 태우고": "paxta qo'yish (ibora)"
+            },
+            "22-savol so'zlari": {
+                "요인": "omil",
+                "폭이": "kengligi",
+                "풍부한": "ko'p,mo'l,serob"
+            },
+            "23-savol so'zlari": {
+                "운영하는": "boshqaradigan,yuritadigan",
+                "사정이": "holat,sharoit,vaziyat",
+                "한참을": "uzoq vaqt,ancha vaqt davomida",
+                "눈을 지그시 감고": "ko'zini ohista -sekin yummoq",
+                "내밀면서": "tutqazib ,oldinga surib",
+                "마치": "go'yo,huddi",
+                "천하를 얻다": "butun dunyoni qo'lga kiritgandek,ulkan g'alabaga erishgandek",
+                "일부를 걷어": "bir qismini yig'ib"
+            },
+            "24-savol so'zlari": {},
+            "25-savol so'zlari": {
+                "해가 되다": "salbiy ta'siri bo'lmoq",
+                "독특한": "o'ziga hos,noodatiy",
+                "통일하다": "yagona, birlashtirmoq",
+                "제자리걸음": "oldinga siljimaslik,joyida qolish",
+                "현실적인 대책": "amaliy-real chora tadbirlar",
+                "요구되다": "talab qilinmoq"
+            },
+            "26-savol so'zlari": {},
+            "27-savol so'zlari": {},
+            "28-savol so'zlari": {
+                "구속": "qamoq",
+                "반발심": "norozilik hissi",
+                "방과": "darsdan keyin",
+                "관여하다": "aralashtirmoq,qatnashtirmoq"
+            },
+            "29-savol so'zlari": {
+                "피로하다": "charchamoq,toliqmoq",
+                "간격": "masofa,oraliq",
+                "편집되어 있다": "montaj qilingan,tahrirlangan",
+                "등장인물": "qahramon,personaj",
+                "각색해서": "moslab qayta ishlangan",
+                "웹 소설": "online roman",
+                "짧은 분량": "qisqa hajmli"
+            },
+            "30-savol so'zlari": {
+                "궁중": "saroy ichida",
+                "잔치를 열다": "ziyofat uyushtirmoq",
+                "귀한": "qimmatli",
+                "성대하게": "Tantanali",
+                "행사를 치렀다": "tadbir o'tkazdi",
+                "지위": "mansab",
+                "일부 사람": "ayrim odamlar ,ba'zi kishilar",
+                "의도에서였다": "...maqsad bo'lgan",
+                "과시하다": "maqtanmoq",
+                "풍습을 널리 알리다": "urf odatni keng yoymoq",
+                "대접하다": "mehmon qilmoq"
+            },
+            "31-savol so'zlari": {
+                "과학적": "ilmiy",
+                "연구": "tadqiqot",
+                "풍경화": "manzara rasmlari",
+                "대기 상태": "atmosfera holati ,havo holati",
+                "붉다": "qizil, qip-qizil",
+                "20세기": "asr",
+                "말": "oxiri"
+            },
+            "32-savol so'zlari": {
+                "기내식": "samolyot taomi",
+                "고려하다": "hisobga olmoq, inobatga olmoq",
+                "수분이 날아가다": "namlik uchib ketmoq",
+                "고도": "balandlik",
+                "미각이 둔해지다": "ta’m bilish qobiliyati susaymoq",
+                "대비하다": "tayyorgarlik ko'rmoq, chora ko'rmoq",
+                "싣다": "yuklamoq, ortmoq",
+                "예민해지다": "sezgir bo'lib qolmoq, ta'sirchan bo'lmoq",
+                "방지하다": "oldini olmoq",
+                "기내": "samolyot ichi, bort ichi"
+            },
+            "33-savol so'zlari": {
+                "종종": "tez-tez, ba'zan",
+                "적합한": "mos, muvofiq",
+                "생존에": "yashab qolish uchun",
+                "농촌": "qishloq",
+                "상대적으로": "nisbatan",
+                "농약 사용": "pestitsid qo'llash",
+                "벌을 쫓기 위해": "hasharotlarni haydash uchun"
+            },
+            "34-savol so'zlari": {
+                "을 벌이고 있다": "..ni olib bormoqda",
+                "활성화": "faollashtirish",
+                "유도하다": "yo'naltirmoq",
+                "일수": "kunlar soni",
+                "소비": "iste'mol",
+                "2조 5천 억 원": "2 trillion 500 milliard von",
+                "경제": "iqtisodiyot",
+                "악영향": "salbiy ta'sir"
+            },
+            "35-savol so'zlari": {
+                "미혼": "turmush qurmagan",
+                "비혼": "turmush qurmaslikka qaror qilgan",
+                "독신": "yolg'iz",
+                "내주다": "bermoq",
+                "포괄하다": "o'z ichiga olmoq",
+                "인식": "tushuncha",
+                "가리키다": "ko'rsatmoq",
+                "부적절한": "nomunosib"
+            },
+            "36-savol so'zlari": {
+                "일부이다": "qismini tashkil qilmoq",
+                "전략적으로": "strategik jihatdan",
+                "연출하다": "sahnalashtirmoq",
+                "의지": "iroda",
+                "표명하다": "izhor qilmoq",
+                "빳빳한": "qattiq",
+                "무채색": "rangsiz",
+                "바람직하다": "maqsadga muvofiq",
+                "협상": "muzokara",
+                "광택": "yaltiroqlik",
+                "복장": "kiyim-bosh",
+                "상징하는": "ramziy",
+                "친근감": "samimiylik",
+                "부합하는": "mos keladigan",
+                "조성하다": "yaratmoq"
+            },
+            "37-savol so'zlari": {
+                "육체적": "jismoniy",
+                "피로": "charchoq",
+                "무기력": "holsizlik, madori qrimaslik",
+                "지속되다": "davom etmoq",
+                "소진증후군": "kalsizlanish sindromi (burnout)",
+                "앓다": "kasal bo'lmoq, og'rimoq",
+                "회복": "tuzalish, tiklanish",
+                "재충전": "qayta quvvatlanish",
+                "심신": "qalb va tana",
+                "활력": "hayotiy kuch, g'ayrat",
+                "사전에 노력": "oldindan harakat qilish"
+            },
+            "38-savol so'zlari": {},
+            "39-savol so'zlari": {},
+            "40-savol so'zlari": {},
+            "41-savol so'zlari": {},
+            "42-savol so'zlari": {},
+            "43-savol so'zlari": {},
+            "44-savol so'zlari": {},
+            "45-savol so'zlari": {},
+            "46-savol so'zlari": {},
+            "47-savol so'zlari": {},
+            "48-savol so'zlari": {},
+            "49-savol so'zlari": {},
+            "50-savol so'zlari": {}
+        }
     }
-  }
 }
