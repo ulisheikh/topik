@@ -44,19 +44,20 @@ user_context = {}
 # ============================================
 
 def get_help_text(user_id):
-    """Yordam matni"""
+    """Yordam matni - Yangilangan"""
     lang = get_user_language(user_id)
     
     header = f"<b>{get_text(user_id, 'help_title')}</b>\n"
-    header += "<b>─────────────────────</b>\n\n"
+    header += "<b>━━━━━━━━━━━━━━━━━</b>\n\n"
     
-    body = f"<b>{get_text(user_id, 'help_create')}</b>\n\n"
-    body += f"<b>{get_text(user_id, 'help_add_word')}</b>\n\n"
-    body += f"<b>{get_text(user_id, 'help_delete')}</b>\n\n"
-    body += f"<b>{get_text(user_id, 'help_restore')}</b>\n\n"
-    body += f"<b>{get_text(user_id, 'help_search')}</b>\n\n"
-    body += f"<b>{get_text(user_id, 'help_system')}</b>\n"
-    body += "<b>━━━━━━━━━━━━━━━━━</b>\n"
+    body = f"{get_text(user_id, 'help_create')}\n\n"
+    body += f"{get_text(user_id, 'help_add_word')}\n\n"
+    body += f"{get_text(user_id, 'help_edit')}\n\n"
+    body += f"{get_text(user_id, 'help_delete')}\n\n"
+    body += f"{get_text(user_id, 'help_search')}\n\n"
+    body += f"{get_text(user_id, 'help_export')}\n\n"
+    body += f"{get_text(user_id, 'help_system')}\n"
+    body += "<b>━━━━━━━━━━━━━━━━━</b>\n\n"
     body += f"<i>{get_text(user_id, 'help_tip')}</i>"
     
     return header + body
