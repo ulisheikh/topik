@@ -183,7 +183,19 @@
                 "부합하는": "mos keladigan",
                 "조성하다": "yaratmoq"
             },
-            "37-savol so'zlari": {},
+            "37-savol so'zlari": {
+                "육체적": "jismoniy",
+                "피로": "charchoq",
+                "무기력": "holsizlik, madori qrimaslik",
+                "지속되다": "davom etmoq",
+                "소진증후군": "kalsizlanish sindromi (burnout)",
+                "앓다": "kasal bo'lmoq, og'rimoq",
+                "회복": "tuzalish, tiklanish",
+                "재충전": "qayta quvvatlanish",
+                "심신": "qalb va tana",
+                "활력": "hayotiy kuch, g'ayrat",
+                "사전에 노력": "oldindan harakat qilish"
+            },
             "38-savol so'zlari": {},
             "39-savol so'zlari": {},
             "40-savol so'zlari": {},
@@ -196,7 +208,9 @@
             "47-savol so'zlari": {},
             "48-savol so'zlari": {},
             "49-savol so'zlari": {},
-            "50-savol so'zlari": {}
+            "50-savol so'zlari": {
+                "엘릭": "50"
+            }
         }
     }
 }
