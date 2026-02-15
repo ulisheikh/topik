@@ -157,14 +157,14 @@
                 "악영향": "salbiy ta'sir"
             },
             "35-savol so'zlari": {
-                "미혼": "turmush qurmagan",
                 "비혼": "turmush qurmaslikka qaror qilgan",
                 "독신": "yolg'iz",
                 "내주다": "bermoq",
                 "포괄하다": "o'z ichiga olmoq",
                 "인식": "tushuncha",
                 "가리키다": "ko'rsatmoq",
-                "부적절한": "nomunosib"
+                "부적절한": "nomunosib",
+                "미혼": "turmush qurmagan"
             },
             "36-savol so'zlari": {
                 "일부이다": "qismini tashkil qilmoq",
