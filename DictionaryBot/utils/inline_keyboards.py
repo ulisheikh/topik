@@ -18,7 +18,7 @@ from utils.language import get_user_language, get_text
 # ============================================
 
 def get_main_keyboard(uid):
-    """Asosiy klaviatura - eski format"""
+    """Asosiy klaviatura - /help bilan"""
     lang = get_user_language(uid)
     markup = ReplyKeyboardMarkup(resize_keyboard=True)
     
@@ -42,6 +42,9 @@ def get_main_keyboard(uid):
         markup.add(KeyboardButton("⚙️ SOZLAMALAR"))
     else:
         markup.add(KeyboardButton("⚙️ 설정"))
+    
+    # 5-qator: /help (ALOHIDA!)
+    markup.add(KeyboardButton("/help"))
     
     return markup
 

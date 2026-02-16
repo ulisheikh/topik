@@ -127,15 +127,11 @@ TEXTS = {
         'error_not_found': '❌ Topilmadi',
         
         # YORDAM
-        'help_title': '📚 LEXORA BOT | YORDAM',
-        'help_create': '📂 BO\'LIMLAR\n👉 Tugma: 📂 BO\'LIMLAR\n👉 Topik tanlang → Bo\'lim → Savol',
-        'help_add_word': '➕ SO\'Z QO\'SHISH\n👉 Savol ichida: ➕ So\'z qo\'shish\n👉 Format: 안녕 salom\n👉 Ko\'p so\'z: har qatorda',
-        'help_edit': '✏️ SO\'Z TAHRIRLASH\n👉 <code>e.eski.yangi</code> yoki <code>E.eski.yangi</code>\n👉 Masalan:\n   • e.안녕.안녕하세요\n   • E.50.55\n   • e.salom.assalomu alaykum',
-        'help_delete': '🗑 SO\'Z O\'CHIRISH\n👉 Savol ichida: 🗑 So\'z o\'chirish\n👉 Raqam bilan: 1 yoki 1,3,5\n👉 So\'z bilan: 안녕 yoki 안녕,감사합니다',
-        'help_search': '🔍 SO\'Z QIDIRISH\n👉 <code>s.so\'z</code> yoki <code>S.so\'z</code>\n👉 Masalan:\n   • s.안녕\n   • S.salom\n   • s.50',
-        'help_export': '📥 EXPORT\n👉 JSON: Butun lug\'atni JSON formatda\n👉 PYTHON: Python dictionary formatda',
-        'help_system': '⚙️ TIZIM\n👉 /status - Bot holati\n👉 SOZLAMALAR - Til, parol',
-        'help_tip': '💡 Maslahat: Har yerdan e. va s. ishlatishingiz mumkin!',
+        'help_title': '📚 YORDAM',
+        'help_edit': '✏️ SO\'Z TAHRIRLASH\n👉 <code>e.eski_so\'z.yangi_so\'z</code>\n👉 Masalan: <code>e.안녕.좋은아침</code>',
+        'help_delete': '🗑 SO\'Z O\'CHIRISH\n👉 Raqam: <code>1</code> yoki <code>1,3,5</code>\n👉 So\'z: <code>안녕</code> yoki <code>안녕,감사합니다</code>',
+        'help_search': '🔍 SO\'Z QIDIRISH\n👉 <code>s.so\'z</code>\n👉 Masalan: <code>s.안녕</code>',
+        'help_tip': '💡 Har yerdan e. va s. ishlatishingiz mumkin!',
         
         # BOT HAQIDA
         'about_bot': 'ℹ️ BOT HAQIDA\n\n'
@@ -285,15 +281,11 @@ TEXTS = {
         'error_not_found': '❌ 찾을 수 없음',
         
         # YORDAM
-        'help_title': '📚 LEXORA 봇 | 도움말',
-        'help_create': '📂 섹션\n👉 버튼: 📂 BO\'LIMLAR\n👉 토픽 선택 → 섹션 → 질문',
-        'help_add_word': '➕ 단어 추가\n👉 질문 안에서: ➕ So\'z qo\'shish\n👉 형식: 안녕 salom\n👉 여러 단어: 각 줄에',
-        'help_edit': '✏️ 단어 수정\n👉 <code>e.이전.새로운</code> 또는 <code>E.이전.새로운</code>\n👉 예:\n   • e.안녕.안녕하세요\n   • E.50.55\n   • e.salom.assalomu alaykum',
-        'help_delete': '🗑 단어 삭제\n👉 질문 안에서: 🗑 So\'z o\'chirish\n👉 번호로: 1 또는 1,3,5\n👉 단어로: 안녕 또는 안녕,감사합니다',
-        'help_search': '🔍 단어 검색\n👉 <code>s.단어</code> 또는 <code>S.단어</code>\n👉 예:\n   • s.안녕\n   • S.salom\n   • s.50',
-        'help_export': '📥 내보내기\n👉 JSON: 전체 사전을 JSON 형식으로\n👉 PYTHON: Python dictionary 형식',
-        'help_system': '⚙️ 시스템\n👉 /status - 봇 상태\n👉 SOZLAMALAR - 언어, 비밀번호',
-        'help_tip': '💡 팁: 어디서나 e. 와 s. 를 사용할 수 있습니다!',
+        'help_title': '📚 도움말',
+        'help_edit': '✏️ 단어 수정\n👉 <code>e.이전_단어.새_단어</code>\n👉 예: <code>e.안녕.좋은아침</code>',
+        'help_delete': '🗑 단어 삭제\n👉 번호: <code>1</code> 또는 <code>1,3,5</code>\n👉 단어: <code>안녕</code> 또는 <code>안녕,감사합니다</code>',
+        'help_search': '🔍 단어 검색\n👉 <code>s.단어</code>\n👉 예: <code>s.안녕</code>',
+        'help_tip': '💡 어디서나 e. 와 s. 를 사용할 수 있습니다!',
         
         # BOT HAQIDA
         'about_bot': 'ℹ️ 봇 정보\n\n'

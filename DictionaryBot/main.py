@@ -44,21 +44,17 @@ user_context = {}
 # ============================================
 
 def get_help_text(user_id):
-    """Yordam matni - Yangilangan"""
+    """Yordam matni - Sodda"""
     lang = get_user_language(user_id)
     
     header = f"<b>{get_text(user_id, 'help_title')}</b>\n"
-    header += "<b>━━━━━━━━━━━━━━━━━</b>\n\n"
+    header += "━━━━━━━━━━━━━━━━━\n\n"
     
-    body = f"{get_text(user_id, 'help_create')}\n\n"
-    body += f"{get_text(user_id, 'help_add_word')}\n\n"
-    body += f"{get_text(user_id, 'help_edit')}\n\n"
+    body = f"{get_text(user_id, 'help_edit')}\n\n"
     body += f"{get_text(user_id, 'help_delete')}\n\n"
     body += f"{get_text(user_id, 'help_search')}\n\n"
-    body += f"{get_text(user_id, 'help_export')}\n\n"
-    body += f"{get_text(user_id, 'help_system')}\n"
-    body += "<b>━━━━━━━━━━━━━━━━━</b>\n\n"
-    body += f"<i>{get_text(user_id, 'help_tip')}</i>"
+    body += "━━━━━━━━━━━━━━━━━\n"
+    body += f"{get_text(user_id, 'help_tip')}"
     
     return header + body
 
@@ -95,7 +91,6 @@ DictionaryBot main.py - START HANDLER qismi
 
 from admin.user_manager import save_user_info
 
-
 @bot.message_handler(commands=['start'])
 def start_handler(message):
     uid = message.from_user.id
@@ -119,15 +114,7 @@ def start_handler(message):
         bot.register_next_step_handler(message, password_handler)
         return
     
-    # 4. Welcome xabari
-    bot.send_message(
-        uid, 
-        get_text(uid, 'welcome'), 
-        parse_mode="HTML", 
-        reply_markup=get_main_keyboard(uid)
-    )
-    
-    # 5. Statistika
+    # 4. Statistika tayyorlash
     from admin.user_manager import get_all_users
     
     # Topiklar soni
@@ -147,10 +134,35 @@ def start_handler(message):
         words=words_count
     )
     
-    bot.send_message(uid, stats_msg, parse_mode="HTML")
+    # 5. FAQAT Welcome + Stats (Help ALOHIDA!)
+    combined_msg = f"{get_text(uid, 'welcome')}\n\n{stats_msg}"
     
-    # 6. HELP TEXT (YANGI!)
+    bot.send_message(
+        uid,
+        combined_msg,
+        parse_mode="HTML",
+        reply_markup=get_main_keyboard(uid)
+    )
+
+# ============================================
+# /help KOMANDASI
+# ============================================
+
+@bot.message_handler(func=lambda m: m.text == '/help')
+def help_handler(message):
+    """Yordam matni"""
+    uid = message.from_user.id
+    
+    # Login tekshirish
+    if not is_logged_in(uid):
+        bot.send_message(uid, get_text(uid, 'enter_password'))
+        return
+    
     bot.send_message(uid, get_help_text(uid), parse_mode="HTML")
+
+# ============================================
+# PAROL HANDLER
+# ============================================
 
 def password_handler(message):
     """Parol tekshirish"""
