@@ -115,14 +115,62 @@ class DictionaryHandler:
         return []
     
     def get_chapter_words(self, user_id, topic, section, chapter):
-        """Bob so'zlari"""
+        """Bob so'zlari (* ni olib tashlangan holda)"""
         data = self.load_user_data(user_id)
         topic_key = f"Topik-{topic.replace('-topik', '')}"
         chapter_key = chapter.replace("-savol", "") + "-savol so'zlari"
         if (topic_key in data and section in data[topic_key] and chapter_key in data[topic_key][section]):
-            return data[topic_key][section][chapter_key]
+            words = data[topic_key][section][chapter_key]
+            # ⭐ * ni olib tashlash
+            return {k.lstrip('*'): v.lstrip('*') for k, v in words.items()}
         return {}
+
     
     def get_total_words(self, user_id):
         """Jami so'zlar soni"""
         return len(self.get_all_words(user_id))
+    
+# ============================================
+# db_handler.py - YULDUZLI SO'ZLAR FUNKSIYALARI
+# Faylning OXIRIGA qo'shing (get_total_words dan keyin)
+# ============================================
+
+    def get_star_words(self, user_id):
+        """Barcha yulduzli so'zlarni olish"""
+        data = self.load_user_data(user_id)
+        star_words = []
+        word_id = 1
+        
+        for topic_key, sections in data.items():
+            for section_key, questions in sections.items():
+                for question_key, word_dict in questions.items():
+                    chapter = question_key.replace("-savol so'zlari", "") + "-savol"
+                    for korean, uzbek in word_dict.items():
+                        # Agar koreys yoki o'zbek so'z * bilan boshlansa
+                        if korean.startswith('*') or uzbek.startswith('*'):
+                            star_words.append({
+                                'id': word_id,
+                                'korean': korean.lstrip('*'),  # * ni olib tashlash
+                                'uzbek': uzbek.lstrip('*'),
+                                'topic': topic_key,
+                                'section': section_key,
+                                'chapter': chapter,
+                                'original_korean': korean,  # Original (with *)
+                                'original_uzbek': uzbek
+                            })
+                        word_id += 1
+        return star_words
+    
+    def get_random_star_word(self, user_id):
+        """Tasodifiy yulduzli so'z olish"""
+        star_words = self.get_star_words(user_id)
+        if not star_words:
+            return None
+        return random.choice(star_words)
+    
+    @staticmethod
+    def strip_star(text):
+        """So'zdan * ni olib tashlash"""
+        if isinstance(text, str):
+            return text.lstrip('*')
+        return text

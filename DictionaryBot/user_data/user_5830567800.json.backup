@@ -202,15 +202,15 @@
             "41-savol so'zlari": {},
             "42-savol so'zlari": {},
             "43-savol so'zlari": {},
-            "44-savol so'zlari": {},
+            "44-savol so'zlari": {
+                "안녕차": "*salomcha"
+            },
             "45-savol so'zlari": {},
             "46-savol so'zlari": {},
             "47-savol so'zlari": {},
             "48-savol so'zlari": {},
             "49-savol so'zlari": {},
-            "50-savol so'zlari": {
-                "r": "Test"
-            }
+            "50-savol so'zlari": {}
         }
     }
 }

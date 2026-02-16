@@ -131,6 +131,9 @@ ALL_TEXTS = {
         "game_select_mode": "🎮 <b>O'yin rejimini tanlang:</b>",
         "btn_general_mode": "🌍 Umumiy rejim",
         "btn_custom_mode": "🎯 Belgilangan rejim",
+        "btn_star_mode": "⭐ Yulduzli so'zlar",
+        "game_starting_star": "⭐ <b>Yulduzli so'zlar rejimi!</b>\n\nFaqat belgilangan so'zlar bo'yicha o'yin.",
+        "no_star_words": "❌ Yulduzli so'zlar yo'q!\n\n💡 So'z qo'shishda * bilan boshlang:\n<code>*안녕 salom</code>",
         "game_select_topic": "📚 <b>Topikni tanlang:</b>",
         "game_select_section": "📖 <b>Bo'limni tanlang:</b>\n<i>{topic}</i>",
         "game_select_section_only": "📖 <b>{topic}</b>\n\nBo'limni tanlang:",
@@ -202,6 +205,9 @@ ALL_TEXTS = {
         "game_select_mode": "🎮 <b>게임 모드 선택:</b>",
         "btn_general_mode": "🌍 일반 모드",
         "btn_custom_mode": "🎯 맞춤 모드",
+        "btn_star_mode": "⭐ 별표 단어",
+        "game_starting_star": "⭐ <b>별표 단어 모드!</b>\n\n표시된 단어로만 게임.",
+        "no_star_words": "❌ 별표 단어가 없습니다!\n\n💡 단어 추가 시 *로 시작:\n<code>*안녕 salom</code>",
         "game_select_topic": "📚 <b>퇴픽 선택:</b>",
         "game_select_section": "📖 <b>섹션 선택:</b>\n<i>{topic}</i>",
         "game_select_section_only": "📖 <b>{topic}</b>\n\n섹션 선택:",
@@ -656,7 +662,8 @@ async def cmd_game(message: Message, state: FSMContext):
     
     markup = InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text=get_text(lang, "btn_general_mode"), callback_data="game_mode_general")],
-        [InlineKeyboardButton(text=get_text(lang, "btn_custom_mode"), callback_data="game_mode_custom")]
+        [InlineKeyboardButton(text=get_text(lang, "btn_custom_mode"), callback_data="game_mode_custom")],
+        [InlineKeyboardButton(text=get_text(lang, "btn_star_mode"), callback_data="game_mode_star")]  # ← YANGI!
     ])
     await state.set_state(GameModeState.selecting_mode)
     await message.answer(get_text(lang, "game_select_mode"), reply_markup=markup, parse_mode="HTML")
@@ -668,13 +675,13 @@ async def inline_start_game(callback: CallbackQuery, state: FSMContext):
     
     markup = InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text=get_text(lang, "btn_general_mode"), callback_data="game_mode_general")],
-        [InlineKeyboardButton(text=get_text(lang, "btn_custom_mode"), callback_data="game_mode_custom")]
+        [InlineKeyboardButton(text=get_text(lang, "btn_custom_mode"), callback_data="game_mode_custom")],
+        [InlineKeyboardButton(text=get_text(lang, "btn_star_mode"), callback_data="game_mode_star")]  # ← YANGI!
     ])
     
     await state.set_state(GameModeState.selecting_mode)
     await callback.message.edit_text(get_text(lang, "game_select_mode"), reply_markup=markup, parse_mode="HTML")
     await callback.answer()
-
 # ============================================
 # UMUMIY REJIM HANDLERI
 # ============================================
@@ -738,6 +745,99 @@ async def game_general_direction_selected(callback: CallbackQuery, state: FSMCon
         parse_mode="HTML"
     )
     await callback.answer()
+
+# ============================================
+# YULDUZLI SO'ZLAR REJIMI
+# ============================================
+
+@router.callback_query(F.data == "game_mode_star")
+async def game_star_mode(callback: CallbackQuery, state: FSMContext):
+    user_id = callback.from_user.id
+    lang = await user_db.get_language(user_id) or "uz"
+    
+    # Yulduzli so'zlar borligini tekshirish
+    star_words = dict_handler.get_star_words(user_id)
+    
+    if not star_words:
+        await callback.answer(get_text(lang, "no_star_words"), show_alert=True)
+        return
+    
+    # Direction tanlash klaviaturasi
+    keyboard = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="🇺🇿 Uz → 🇰🇷 Ko", callback_data="game_dir_star_uz_ko")],
+        [InlineKeyboardButton(text="🇰🇷 Ko → 🇺🇿 Uz", callback_data="game_dir_star_ko_uz")],
+        [InlineKeyboardButton(text="◀️ Orqaga", callback_data="game_back_to_mode")]
+    ])
+    
+    await callback.message.edit_text(
+        f"⭐ <b>Yulduzli so'zlar: {len(star_words)} ta</b>\n\nTarjima yo'nalishini tanlang:",
+        reply_markup=keyboard,
+        parse_mode="HTML"
+    )
+    await callback.answer()
+
+
+# Direction tanlanganidan keyin star rejim boshlash:
+@router.callback_query(F.data.startswith("game_dir_star_"))
+async def game_star_direction_selected(callback: CallbackQuery, state: FSMContext):
+    user_id = callback.from_user.id
+    lang = await user_db.get_language(user_id) or "uz"
+    
+    direction = callback.data.replace("game_dir_star_", "")  # uz_ko yoki ko_uz
+    
+    word = dict_handler.get_random_star_word(user_id)
+    
+    if not word:
+        await callback.answer(get_text(lang, "no_star_words"), show_alert=True)
+        await state.clear()
+        return
+    
+    await state.set_state(GameModeState.playing)
+    await state.update_data(
+        current_word=word,
+        start_time=datetime.now().timestamp(),
+        question_count=1,
+        mode='star',  # ← YANGI rejim
+        direction=direction
+    )
+    
+    # Direction ga qarab savol yaratish (* ni olib tashlash)
+    if direction == "uz_ko":
+        question_text = word['uzbek']  # Allaqachon * siz
+        answer_lang = "Koreys"
+    else:  # ko_uz
+        question_text = word['korean']  # Allaqachon * siz
+        answer_lang = "O'zbek"
+    
+    await callback.message.edit_text(
+        f"⭐ <b>Savol #1:</b>\n>>> <i>{question_text}</i>\n\n"
+        f"📍 {word['topic']} › {word['section']} › {word['chapter']}\n"
+        f"📝 {answer_lang} tilida yozing:",
+        reply_markup=get_game_keyboard(lang),
+        parse_mode="HTML"
+    )
+    await callback.answer()
+
+
+# ============================================
+# ORQAGA QAYTISH (game_back_to_mode)
+# Agar bu funksiya mavjud bo'lmasa, qo'shing:
+# ============================================
+
+@router.callback_query(F.data == "game_back_to_mode")
+async def game_back_to_mode(callback: CallbackQuery, state: FSMContext):
+    user_id = callback.from_user.id
+    lang = await user_db.get_language(user_id) or "uz"
+    
+    markup = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text=get_text(lang, "btn_general_mode"), callback_data="game_mode_general")],
+        [InlineKeyboardButton(text=get_text(lang, "btn_custom_mode"), callback_data="game_mode_custom")],
+        [InlineKeyboardButton(text=get_text(lang, "btn_star_mode"), callback_data="game_mode_star")]
+    ])
+    
+    await callback.message.edit_text(get_text(lang, "game_select_mode"), reply_markup=markup, parse_mode="HTML")
+    await callback.answer()
+
 
 
 # ============================================
@@ -1025,7 +1125,6 @@ async def game_custom_direction_selected(callback: CallbackQuery, state: FSMCont
 # ============================================
 # JAVOBNI TEKSHIRISH (ASOSIY MANTIQ)
 # ============================================
-
 @router.message(GameModeState.playing, lambda message: not message.text.startswith('/'))
 async def process_game_answer(message: Message, state: FSMContext):
     user_id = message.from_user.id
@@ -1040,13 +1139,13 @@ async def process_game_answer(message: Message, state: FSMContext):
 
     user_answer = message.text.strip().lower()
     
-    # Direction ga qarab to'g'ri javobni aniqlash
+    # Direction ga qarab to'g'ri javobni aniqlash (⭐ * ni olib tashlash)
     if direction == "uz_ko":
-        correct_answer = word['korean'].strip().lower()
-        correct_display = word['korean']
+        correct_answer = word['korean'].lstrip('*').strip().lower()  # ← * ni olib tashlash
+        correct_display = word['korean'].lstrip('*')  # ← * ni olib tashlash
     else:  # ko_uz
-        correct_answer = word['uzbek'].strip().lower()
-        correct_display = word['uzbek']
+        correct_answer = word['uzbek'].lstrip('*').strip().lower()  # ← * ni olib tashlash
+        correct_display = word['uzbek'].lstrip('*')  # ← * ni olib tashlash
     
     is_correct = (user_answer == correct_answer)
     
@@ -1083,12 +1182,17 @@ async def process_game_answer(message: Message, state: FSMContext):
             await state.clear()
             return
     else:
-        # Umumiy rejim yoki eski custom rejim
-        next_word = dict_handler.get_random_word(
-            user_id, 
-            topic=data.get('topic') if mode == 'custom' else None, 
-            section=data.get('section') if mode == 'custom' else None
-        )
+        # Umumiy, star yoki eski custom rejim
+        if mode == 'star':
+            # ⭐ Yulduzli so'zlar rejimi
+            next_word = dict_handler.get_random_star_word(user_id)
+        else:
+            # Umumiy rejim yoki eski custom rejim
+            next_word = dict_handler.get_random_word(
+                user_id, 
+                topic=data.get('topic') if mode == 'custom' else None, 
+                section=data.get('section') if mode == 'custom' else None
+            )
     
     if not next_word:
         await message.answer(f"{feedback}\n\n🏁 " + get_text(lang, "no_words"))
@@ -1098,12 +1202,12 @@ async def process_game_answer(message: Message, state: FSMContext):
     q_count = data.get('question_count', 1) + 1
     await state.update_data(current_word=next_word, start_time=datetime.now().timestamp(), question_count=q_count)
 
-    # Direction ga qarab keyingi savolni yaratish
+    # Direction ga qarab keyingi savolni yaratish (⭐ * ni olib tashlash)
     if direction == "uz_ko":
-        question_text = next_word['uzbek']
+        question_text = next_word.get('uzbek', '').lstrip('*')  # ← * ni olib tashlash
         answer_lang = "Koreys"
     else:  # ko_uz
-        question_text = next_word['korean']
+        question_text = next_word.get('korean', '').lstrip('*')  # ← * ni olib tashlash
         answer_lang = "O'zbek"
 
     next_question = f"🎮 <b>Savol #{q_count}:</b>\n>>> <i>{question_text}</i>\n\n" \
@@ -1112,8 +1216,6 @@ async def process_game_answer(message: Message, state: FSMContext):
 
     await message.answer(f"{feedback}\n\n━━━━━━━━━━━━━━\n\n{next_question}", 
                          reply_markup=get_game_keyboard(lang), parse_mode="HTML")
-
-
 # process_auto_answer ni ALMASHTIRISH:
 @router.message(AutoPlayState.playing, lambda message: not message.text.startswith('/'))
 async def process_auto_answer(message: Message, state: FSMContext):
@@ -1544,8 +1646,12 @@ async def chapters_chapter_selected(callback: CallbackQuery):
         return
     
     text = f"📚 <b>{chapter.replace('-', ' ').title()}</b>\n\n"
+    
+    # ⭐ * NI OLIB TASHLASH
     for korean, uzbek in words.items():
-        text += f"🇰🇷 {korean} – 🇺🇿 {uzbek}\n"
+        korean_display = korean.lstrip('*')
+        uzbek_display = uzbek.lstrip('*')
+        text += f"🇰🇷 {korean_display} – 🇺🇿 {uzbek_display}\n"
     
     text += f"\n📊 {get_text(lang, 'statistics')}: {len(words)}"
     

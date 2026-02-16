@@ -95,6 +95,7 @@ DictionaryBot main.py - START HANDLER qismi
 
 from admin.user_manager import save_user_info
 
+
 @bot.message_handler(commands=['start'])
 def start_handler(message):
     uid = message.from_user.id
@@ -126,7 +127,7 @@ def start_handler(message):
         reply_markup=get_main_keyboard(uid)
     )
     
-    # 5. Statistika (help o'rniga)
+    # 5. Statistika
     from admin.user_manager import get_all_users
     
     # Topiklar soni
@@ -144,10 +145,12 @@ def start_handler(message):
         users=users_count,
         topics=topics_count,
         words=words_count
-        
     )
     
     bot.send_message(uid, stats_msg, parse_mode="HTML")
+    
+    # 6. HELP TEXT (YANGI!)
+    bot.send_message(uid, get_help_text(uid), parse_mode="HTML")
 
 def password_handler(message):
     """Parol tekshirish"""
@@ -186,10 +189,6 @@ def password_handler(message):
         else:
             bot.send_message(uid, get_text(uid, 'password_wrong'))
             bot.register_next_step_handler(message, password_handler)
-
-# ============================================
-# SOZLAMALAR
-# ============================================
 
 # ============================================
 # BO'LIMLAR - YANGI INLINE VERSIYA
@@ -262,11 +261,6 @@ def settings_handler(message):
         get_text(uid, 'settings_menu'),
         reply_markup=markup
     )
-
-# ============================================
-# BO'LIMLAR
-# ============================================
-
 
 # ============================================
 # EXPORT (JSON VA PYTHON)
