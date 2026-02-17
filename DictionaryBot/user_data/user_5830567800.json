@@ -30,8 +30,8 @@
                 "기혼": "turmush qurgan",
                 "가사": "uy ishlari",
                 "육아": "bola parvarishi",
-                "여전히": "hanuz,avvalgidek",
-                "승진하다": "lavozimi oshmoq"
+                "*여전히": "*hanuz,avvalgidek",
+                "*승진하다": "*lavozimi oshmoq"
             },
             "17-savol so'zlari": {
                 "환하다": "yorqin",
@@ -39,7 +39,7 @@
             },
             "18-savol so'zlari": {
                 "횟수": "marta,takrorlanish soni",
-                "측정한다": "o'lchaydi,aniqlaydi",
+                "*측정한다": "*o'lchaydi,aniqlaydi",
                 "늘리다": "uzaytirmoq,ko'paytirmoq"
             },
             "19-savol so'zlari": {
@@ -48,7 +48,7 @@
                 "물질": "modda",
                 "겉": "sirti,tashqi qismi,po'sti",
                 "대개": "asosan,odatda",
-                "숙성된": "pishgan,yetishtirilgan",
+                "*숙성된": "*pishgan,yetishtirilgan",
                 "껍질": "po'st qismi",
                 "지속적으로": "doimiy",
                 "또한": "shuningdek,yana",
@@ -72,7 +72,7 @@
                 "사정이": "holat,sharoit,vaziyat",
                 "한참을": "uzoq vaqt,ancha vaqt davomida",
                 "눈을 지그시 감고": "ko'zini ohista -sekin yummoq",
-                "내밀면서": "tutqazib ,oldinga surib",
+                "*내밀면서": "*tutqazib ,oldinga surib",
                 "마치": "go'yo,huddi",
                 "천하를 얻다": "butun dunyoni qo'lga kiritgandek,ulkan g'alabaga erishgandek",
                 "일부를 걷어": "bir qismini yig'ib"
@@ -81,10 +81,10 @@
             "25-savol so'zlari": {
                 "해가 되다": "salbiy ta'siri bo'lmoq",
                 "독특한": "o'ziga hos,noodatiy",
-                "통일하다": "yagona, birlashtirmoq",
+                "*통일하다": "*yagona, birlashtirmoq",
                 "제자리걸음": "oldinga siljimaslik,joyida qolish",
                 "현실적인 대책": "amaliy-real chora tadbirlar",
-                "요구되다": "talab qilinmoq"
+                "*요구되다": "*talab qilinmoq"
             },
             "26-savol so'zlari": {},
             "27-savol so'zlari": {},
@@ -95,26 +95,26 @@
                 "관여하다": "aralashtirmoq,qatnashtirmoq"
             },
             "29-savol so'zlari": {
-                "피로하다": "charchamoq,toliqmoq",
+                "*피로하다": "*charchamoq,toliqmoq",
                 "간격": "masofa,oraliq",
                 "편집되어 있다": "montaj qilingan,tahrirlangan",
                 "등장인물": "qahramon,personaj",
-                "각색해서": "moslab qayta ishlangan",
+                "*각색해서": "*moslab qayta ishlangan",
                 "웹 소설": "online roman",
                 "짧은 분량": "qisqa hajmli"
             },
             "30-savol so'zlari": {
                 "궁중": "saroy ichida",
                 "잔치를 열다": "ziyofat uyushtirmoq",
-                "귀한": "qimmatli",
-                "성대하게": "Tantanali",
+                "*귀한": "*qimmatli",
+                "*성대하게": "*Tantanali",
                 "행사를 치렀다": "tadbir o'tkazdi",
                 "지위": "mansab",
                 "일부 사람": "ayrim odamlar ,ba'zi kishilar",
                 "의도에서였다": "...maqsad bo'lgan",
-                "과시하다": "maqtanmoq",
+                "*과시하다": "*maqtanmoq",
                 "풍습을 널리 알리다": "urf odatni keng yoymoq",
-                "대접하다": "mehmon qilmoq"
+                "*대접하다": "*mehmon qilmoq"
             },
             "31-savol so'zlari": {
                 "과학적": "ilmiy",
@@ -127,13 +127,13 @@
             },
             "32-savol so'zlari": {
                 "기내식": "samolyot taomi",
-                "고려하다": "hisobga olmoq, inobatga olmoq",
+                "*고려하다": "*hisobga olmoq, inobatga olmoq",
                 "수분이 날아가다": "namlik uchib ketmoq",
                 "고도": "balandlik",
                 "미각이 둔해지다": "ta’m bilish qobiliyati susaymoq",
-                "대비하다": "tayyorgarlik ko'rmoq, chora ko'rmoq",
+                "*대비하다": "*tayyorgarlik ko'rmoq, chora ko'rmoq",
                 "싣다": "yuklamoq, ortmoq",
-                "예민해지다": "sezgir bo'lib qolmoq, ta'sirchan bo'lmoq",
+                "*예민해지다": "*sezgir bo'lib qolmoq, ta'sirchan bo'lmoq",
                 "방지하다": "oldini olmoq",
                 "기내": "samolyot ichi, bort ichi"
             },
@@ -149,7 +149,7 @@
             "34-savol so'zlari": {
                 "을 벌이고 있다": "..ni olib bormoqda",
                 "활성화": "faollashtirish",
-                "유도하다": "yo'naltirmoq",
+                "*유도하다": "*yo'naltirmoq",
                 "일수": "kunlar soni",
                 "소비": "iste'mol",
                 "2조 5천 억 원": "2 trillion 500 milliard von",

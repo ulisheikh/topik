@@ -32,6 +32,8 @@ from utils.exam_keyboards import (
     get_exam_topics_keyboard,
     get_exam_sections_keyboard
 )
+from utils.exam_keyboards import get_exam_main_keyboard
+
 from config import EXAM_AUTO_TIME, EXAM_WORDS_PER_FILE
 
 def get_text(lang: str, key: str, **kwargs) -> str:
@@ -1870,65 +1872,32 @@ from aiogram.fsm.context import FSMContext
 
 @router.message(F.text == "/exam_doc")
 async def cmd_exam_list(message: Message, state: FSMContext):
-    """Bo'limlarni ko'rsatish - DEBUG versiya"""
+    """Bo'limlarni ko'rsatish (asosiy kirish nuqtasi)"""
     user_id = message.from_user.id
     await state.clear()
     
-    # DEBUG: Ma'lumotlarni tekshirish
-    print(f"\n{'='*50}")
-    print(f"USER ID: {user_id}")
-    
-    # 1. Barcha so'zlarni olish (asosiy metod)
-    all_words = dict_handler.get_all_words(user_id)
-    print(f"Jami so'zlar: {len(all_words) if all_words else 0}")
-    
-    if all_words:
-        print(f"Birinchi so'z: {all_words[0]}")
-    
-    # 2. Topiklar
+    # Barcha mavjud topiklar va bo'limlarni olish
     topics = dict_handler.get_all_topics(user_id)
-    print(f"Topiklar: {topics}")
     
-    # 3. User data
-    try:
-        user_data = dict_handler.load_user_data(user_id)
-        keys_text = list(user_data.keys()) if user_data else "BO'SH"
-        print(f"User data keys: {keys_text}")
-    except Exception as e:
-        print(f"User data xatosi: {e}")
-    
-    print(f"{'='*50}\n")
-    
-    # Agar hech narsa bo'lmasa
-    if not all_words:
-        await message.answer(
-            "❌ Sizda hali so'zlar yo'q!\n\n"
-            "Iltimos avval /game orqali so'z qo'shing."
-        )
+    if not topics:
+        await message.answer("❌ Lug'atingizda ma'lumot topilmadi!")
         return
     
-    # YANGI YONDASHUV: Topiklar emas, balki BARCHA so'zlardan bo'limlarni olish
+    # Bo'limlar ro'yxatini yaratish
     keyboard = []
-    sections_found = set()
     
-    for word in all_words:
-        topic = word.get('topic', 'Unknown')
-        section = word.get('section', 'general')
-        
-        # Unique bo'limlarni saqlash
-        section_key = f"{topic}:{section}"
-        if section_key not in sections_found:
-            sections_found.add(section_key)
-            
+    for topic in topics:
+        sections = dict_handler.get_topic_sections(user_id, topic)
+        for section in sections:
             # Bo'lim nomini koreyscha
             section_map = {
                 'reading': '읽기',
                 'writing': '쓰기', 
-                'listening': '듣기',
-                'general': '일반'
+                'listening': '듣기'
             }
             section_korean = section_map.get(section, section)
             
+            # Har bir bo'lim uchun tugma
             keyboard.append([
                 InlineKeyboardButton(
                     text=f"📚 {topic} › {section_korean}",
@@ -1938,100 +1907,31 @@ async def cmd_exam_list(message: Message, state: FSMContext):
     
     # Agar bo'limlar topilmasa
     if not keyboard:
-        await message.answer(
-            "❌ Bo'limlar aniqlanmadi!\n\n"
-            "Debug info:\n"
-            f"• So'zlar: {len(all_words)}\n"
-            f"• Topiklar: {len(topics)}\n\n"
-            "So'z strukturasini tekshiring."
-        )
+        await message.answer("❌ Bo'limlar topilmadi!")
         return
+    
+    # ⭐ YULDUZLI SO'ZLAR TUGMASI (YANGI!)
+    star_words = dict_handler.get_star_words(user_id)
+    if star_words:
+        keyboard.append([
+            InlineKeyboardButton(
+                text=f"⭐ Yulduzli so'zlar ({len(star_words)} ta)",
+                callback_data="exam_star"
+            )
+        ])
     
     # Random exam tugmasi
     keyboard.append([
         InlineKeyboardButton(
-            text="🎲 Barcha so'zlardan (Random)",
+            text="🎲 Tasodifiy (Random)",
             callback_data="exam_random_all"
         )
     ])
     
     await message.answer(
-        f"📚 시험 섹션을 선택하세요:\n"
-        f"(Mavjud bo'limlar: {len(sections_found)})\n\n"
-        f"Imtihon bo'limini tanlang:",
+        "📚 시험 섹션을 선택하세요:\n(Imtihon bo'limini tanlang:)",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=keyboard)
     )
-
-
-# ============================================
-# 2. BO'LIM TANLANDI - YO'NALISH SO'RASH
-# ============================================
-
-@router.callback_query(F.data.startswith("exam_section:"))
-async def exam_section_selected(callback: CallbackQuery, state: FSMContext):
-    """Bo'lim tanlandi - yo'nalish so'rash"""
-    parts = callback.data.split(":")
-    topic = parts[1]
-    section = parts[2]
-    
-    user_id = callback.from_user.id
-    
-    # DEBUG: So'zlar borligini tekshirish
-    all_words = dict_handler.get_all_words(user_id)
-    filtered_words = [w for w in all_words if w.get('topic') == topic and w.get('section') == section]
-    
-    print(f"\n{'='*50}")
-    print(f"Bo'lim tanlandi: {topic} › {section}")
-    print(f"Filtrlangan so'zlar: {len(filtered_words)}")
-    print(f"{'='*50}\n")
-    
-    if not filtered_words:
-        await callback.answer("❌ Bu bo'limda so'zlar topilmadi!", show_alert=True)
-        return
-    
-    # State ga saqlaymiz
-    await state.update_data(exam_topic=topic, exam_section=section)
-    
-    # Bo'lim nomini koreyscha
-    section_map = {
-        'reading': '읽기',
-        'writing': '쓰기',
-        'listening': '듣기',
-        'general': '일반'
-    }
-    section_korean = section_map.get(section, section)
-    
-    # Yo'nalish tanlash tugmalari
-    keyboard = InlineKeyboardMarkup(inline_keyboard=[
-        [
-            InlineKeyboardButton(
-                text="🇰🇷 한국어 ➔ 🇺🇿 우즈베크어",
-                callback_data="exam_mode:kr_to_uz"
-            )
-        ],
-        [
-            InlineKeyboardButton(
-                text="🇺🇿 우즈베크어 ➔ 🇰🇷 한국어", 
-                callback_data="exam_mode:uz_to_kr"
-            )
-        ],
-        [
-            InlineKeyboardButton(
-                text="◀️ Orqaga",
-                callback_data="exam_back_to_sections"
-            )
-        ]
-    ])
-    
-    await callback.message.edit_text(
-        f"📚 {topic} › {section_korean}\n"
-        f"📊 {len(filtered_words)}개 단어\n\n"
-        f"🔄 시험 형식을 선택하세요:\n"
-        f"(Imtihon formatini tanlang:)",
-        reply_markup=keyboard
-    )
-    await callback.answer()
-
 
 # ============================================
 # 3. YO'NALISH TANLANDI - FAYL YARATISH
@@ -2561,6 +2461,149 @@ async def cmd_exam_list(message: Message, state: FSMContext):
         reply_markup=InlineKeyboardMarkup(inline_keyboard=keyboard)
     )
 
+# ============================================
+# YULDUZLI SO'ZLAR - EXAM_STAR CALLBACK
+# ============================================
+
+@router.callback_query(F.data == "exam_star")
+async def exam_star_handler(callback: CallbackQuery):
+    """Yulduzli so'zlar yo'nalishi tanlash"""
+    user_id = callback.from_user.id
+    
+    # Yulduzli so'zlar borligini tekshirish
+    star_words = dict_handler.get_star_words(user_id)
+    
+    if not star_words:
+        await callback.answer(
+            "❌ Yulduzli so'zlar yo'q!\n\n"
+            "So'z qo'shishda * bilan boshlang:\n"
+            "*안녕 salom",
+            show_alert=True
+        )
+        return
+    
+    # Yo'nalish tanlash
+    from utils.exam_keyboards import get_exam_star_direction_keyboard
+    
+    await callback.message.edit_text(
+        f"⭐ <b>Yulduzli so'zlar: {len(star_words)} ta</b>\n\n"
+        f"Yo'nalishni tanlang:",
+        reply_markup=get_exam_star_direction_keyboard(),
+        parse_mode="HTML"
+    )
+    await callback.answer()
+
+
+# ============================================
+# YULDUZLI SO'ZLAR - YO'NALISH TANLANDI
+# ============================================
+
+@router.callback_query(F.data.startswith("exam_star_"))
+async def exam_star_direction_handler(callback: CallbackQuery):
+    """Yulduzli so'zlar .docx yaratish"""
+    user_id = callback.from_user.id
+    direction = callback.data.replace("exam_star_", "")  # uz_ko yoki ko_uz
+    
+    await callback.message.edit_text("⏳ Fayl yaratilmoqda...")
+    
+    # Yulduzli so'zlarni olish
+    star_words = dict_handler.get_star_words(user_id)
+    
+    if not star_words:
+        await callback.message.edit_text("❌ Yulduzli so'zlar topilmadi!")
+        return
+    
+    # So'zlarni tayyorlash (korean, uzbek) tuple sifatida
+    words_list = [(w['korean'], w['uzbek']) for w in star_words]
+    
+    # Mode aniqlash
+    mode = "kr_to_uz" if direction == "ko_uz" else "uz_to_kr"
+    
+    # Location
+    location = f"⭐ Yulduzli so'zlar ({len(words_list)} ta)"
+    
+    try:
+        # .docx yaratish
+        from utils.exam_generator import create_exam_word
+        filepath = create_exam_word(words_list, location=location, mode=mode)
+        
+        # Faylni yuborish
+        from aiogram.types import FSInputFile
+        doc_file = FSInputFile(filepath)
+        
+        await callback.message.answer_document(
+            document=doc_file,
+            caption=f"⭐ <b>Yulduzli so'zlar</b>\n\n"
+                    f"📊 Jami: {len(words_list)} ta so'z\n"
+                    f"🎯 Yo'nalish: {'🇰🇷 Ko → 🇺🇿 Uz' if mode == 'kr_to_uz' else '🇺🇿 Uz → 🇰🇷 Ko'}",
+            parse_mode="HTML"
+        )
+        
+        # Vaqtinchalik faylni o'chirish
+        import os
+        if os.path.exists(filepath):
+            os.remove(filepath)
+        
+        await callback.message.delete()
+        await callback.answer("✅ Fayl yuborildi!")
+        
+    except Exception as e:
+        await callback.message.edit_text(f"❌ Xatolik: {str(e)}")
+        await callback.answer()
+
+
+# ============================================
+# * MATNI YUBORILGANDA - RO'YXAT KO'RSATISH
+# ============================================
+@router.message(F.text == "*")
+async def star_list_handler(message: Message):
+    """* yuborilganda yulduzli so'zlar ro'yxatini ixcham ko'rinishda chiqaradi"""
+    user_id = message.from_user.id
+    
+    # Yulduzli so'zlarni olish
+    star_words = dict_handler.get_star_words(user_id)
+    
+    if not star_words:
+        await message.answer(
+            "❌ <b>Yulduzli so'zlar yo'q!</b>",
+            parse_mode="HTML"
+        )
+        return
+
+    # Sarlavha
+    text = f"⭐ <b>YULDUZLI SO'ZLAR ({len(star_words)} ta):</b>\n"
+    
+    for idx, word in enumerate(star_words, 1):
+        # Bitta qatorga: 1. Koreyscha - Tarjima
+        text += f"{idx}. <b>{word['korean']}</b> - {word['uzbek']}\n"
+        
+        # Telegram xabari limiti va zichlik uchun har 40 ta so'zda bo'lish (joy kamligi uchun limitni oshirdik)
+        if idx % 40 == 0 and idx < len(star_words):
+            await message.answer(text, parse_mode="HTML")
+            text = "" # Yangi xabar uchun tozalash
+
+    # Oxirgi qolgan qismni yuborish
+    if text:
+        await message.answer(text, parse_mode="HTML")
+
+# ============================================
+# EXAM_BACK_MAIN - ORQAGA QAYTISH
+# Agar mavjud bo'lmasa, qo'shing:
+# ============================================
+
+@router.callback_query(F.data == "exam_back_main")
+async def exam_back_main_handler(callback: CallbackQuery):
+    """Exam asosiy menyuga qaytish"""
+    from utils.exam_keyboards import get_exam_main_keyboard
+    
+    await callback.message.edit_text(
+        "📚 <b>Exam menyusi</b>\n\n"
+        "Tanlang:",
+        reply_markup=get_exam_main_keyboard(),
+        parse_mode="HTML"
+    )
+    await callback.answer()
+
 
 # ============================================
 # 2. BO'LIM TANLANDI - YO'NALISH SO'RASH
@@ -2614,6 +2657,154 @@ async def exam_section_selected(callback: CallbackQuery, state: FSMContext):
         reply_markup=keyboard
     )
     await callback.answer()
+
+# ============================================
+# YULDUZLI SO'ZLAR - EXAM_STAR CALLBACK
+# ============================================
+
+@router.callback_query(F.data == "exam_star")
+async def exam_star_handler(callback: CallbackQuery):
+    """Yulduzli so'zlar yo'nalishi tanlash"""
+    user_id = callback.from_user.id
+    
+    # Yulduzli so'zlar borligini tekshirish
+    star_words = dict_handler.get_star_words(user_id)
+    
+    if not star_words:
+        await callback.answer(
+            "❌ Yulduzli so'zlar yo'q!\n\n"
+            "So'z qo'shishda * bilan boshlang:\n"
+            "*안녕 salom",
+            show_alert=True
+        )
+        return
+    
+    # Yo'nalish tanlash
+    from exam_keyboards import get_exam_star_direction_keyboard
+    
+    await callback.message.edit_text(
+        f"⭐ <b>Yulduzli so'zlar: {len(star_words)} ta</b>\n\n"
+        f"Yo'nalishni tanlang:",
+        reply_markup=get_exam_star_direction_keyboard(),
+        parse_mode="HTML"
+    )
+    await callback.answer()
+
+
+# ============================================
+# YULDUZLI SO'ZLAR - YO'NALISH TANLANDI
+# ============================================
+
+@router.callback_query(F.data.startswith("exam_star_"))
+async def exam_star_direction_handler(callback: CallbackQuery):
+    """Yulduzli so'zlar .docx yaratish"""
+    user_id = callback.from_user.id
+    direction = callback.data.replace("exam_star_", "")  # uz_ko yoki ko_uz
+    
+    await callback.message.edit_text("⏳ Fayl yaratilmoqda...")
+    
+    # Yulduzli so'zlarni olish
+    star_words = dict_handler.get_star_words(user_id)
+    
+    if not star_words:
+        await callback.message.edit_text("❌ Yulduzli so'zlar topilmadi!")
+        return
+    
+    # So'zlarni tayyorlash (korean, uzbek) tuple sifatida
+    words_list = [(w['korean'], w['uzbek']) for w in star_words]
+    
+    # Mode aniqlash
+    mode = "kr_to_uz" if direction == "ko_uz" else "uz_to_kr"
+    
+    # Location
+    location = f"⭐ Yulduzli so'zlar ({len(words_list)} ta)"
+    
+    try:
+        # .docx yaratish
+        from exam_generator import create_exam_word
+        filepath = create_exam_word(words_list, location=location, mode=mode)
+        
+        # Faylni yuborish
+        from aiogram.types import FSInputFile
+        doc_file = FSInputFile(filepath)
+        
+        await callback.message.answer_document(
+            document=doc_file,
+            caption=f"⭐ <b>Yulduzli so'zlar</b>\n\n"
+                    f"📊 Jami: {len(words_list)} ta so'z\n"
+                    f"🎯 Yo'nalish: {'🇰🇷 Ko → 🇺🇿 Uz' if mode == 'kr_to_uz' else '🇺🇿 Uz → 🇰🇷 Ko'}",
+            parse_mode="HTML"
+        )
+        
+        # Vaqtinchalik faylni o'chirish
+        import os
+        if os.path.exists(filepath):
+            os.remove(filepath)
+        
+        await callback.message.delete()
+        await callback.answer("✅ Fayl yuborildi!")
+        
+    except Exception as e:
+        await callback.message.edit_text(f"❌ Xatolik: {str(e)}")
+        await callback.answer()
+
+
+# ============================================
+# * MATNI YUBORILGANDA - RO'YXAT KO'RSATISH
+# ============================================
+
+@router.message(F.text == "*")
+async def star_list_handler(message: Message):
+    """* yuborilganda yulduzli so'zlar ro'yxati"""
+    user_id = message.from_user.id
+    
+    # Yulduzli so'zlarni olish
+    star_words = dict_handler.get_star_words(user_id)
+    
+    if not star_words:
+        await message.answer(
+            "❌ <b>Yulduzli so'zlar yo'q!</b>\n\n"
+            "💡 So'z qo'shishda <code>*</code> bilan boshlang:\n"
+            "<code>*안녕 salom</code>",
+            parse_mode="HTML"
+        )
+        return
+    
+    # Ro'yxat yaratish
+    text = f"⭐ <b>YULDUZLI SO'ZLAR ({len(star_words)} ta):</b>\n\n"
+    
+    for idx, word in enumerate(star_words, 1):
+        text += f"{idx}. <b>{word['korean']}</b> → {word['uzbek']}\n"
+        text += f"   📍 {word['topic']} › {word['section']} › {word['chapter']}\n\n"
+        
+        # Har 20 ta so'zdan keyin yangi xabar (Telegram limiti)
+        if idx % 20 == 0 and idx < len(star_words):
+            await message.answer(text, parse_mode="HTML")
+            text = f"⭐ <b>DAVOMI ({idx+1}-{min(idx+20, len(star_words))}):</b>\n\n"
+    
+    # Oxirgi qism
+    if text:
+        await message.answer(text, parse_mode="HTML")
+
+
+# ============================================
+# EXAM_BACK_MAIN - ORQAGA QAYTISH
+# Agar mavjud bo'lmasa, qo'shing:
+# ============================================
+
+@router.callback_query(F.data == "exam_back_main")
+async def exam_back_main_handler(callback: CallbackQuery):
+    """Exam asosiy menyuga qaytish"""
+    from exam_keyboards import get_exam_main_keyboard
+    
+    await callback.message.edit_text(
+        "📚 <b>Exam menyusi</b>\n\n"
+        "Tanlang:",
+        reply_markup=get_exam_main_keyboard(),
+        parse_mode="HTML"
+    )
+    await callback.answer()
+
 
 
 # ============================================
