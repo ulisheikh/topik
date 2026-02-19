@@ -372,6 +372,11 @@
                 "*비판하다": "tanqid qilmoq",
                 "*염려하다": "xavotirlanmoq, tashvishlanmoq"
             }
+        },
+        "listening": {
+            "1-savol so'zlari": {
+                "선": "son"
+            }
         }
     }
 }

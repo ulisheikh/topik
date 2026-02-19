@@ -365,7 +365,13 @@
                 "*조장하다": "avj oldirmoq, kuchaytirmoq (yomon narsani)",
                 "통합을 저해하다": "birlashishga to'sqinlik qilmoq"
             },
-            "50-savol so'zlari": {}
+            "50-savol so'zlari": {
+                "동정하다": "hamdardlik bildirmoq, rahm qilmoq",
+                "제정 단계": "joriy etish bosqichi (qonunni o'rnatish bosqichi)",
+                "*지적하다": "ko'rsatib o'tmoq, tanqid qilmoq",
+                "*비판하다": "tanqid qilmoq",
+                "*염려하다": "xavotirlanmoq, tashvishlanmoq"
+            }
         }
     }
 }
