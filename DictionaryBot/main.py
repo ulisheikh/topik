@@ -1942,16 +1942,29 @@ def sections_handler(message):
     )
 
 
+# ==================== ISHGA TUSHIRISH (YANGILANGAN) ====================
+
 if __name__ == "__main__":
-    # Threading - Monitoringni alohida oqimda ishga tushirish
+    # 1. Monitoringni fonda ishga tushirish
     threading.Thread(target=clean_old_backups, daemon=True).start()
 
     try:
+        # 2. MENU BUYRUQLARINI O'RNATISH (YANGI!)
+        bot.set_my_commands([
+            types.BotCommand("start", "🏠 Botni qayta ishga tushirish"),
+            types.BotCommand("help", "❓ Yordam va yo'riqnoma"),
+            types.BotCommand("status", "📊 Tizim holati (Admin)")
+        ])
+
         me = bot.get_me()
         print(f"\n{'='*40}")
         print(f"BOT: @{me.username}")
         print(f"STATUS: RUNNING ✅")
+        print(f"MENU: COMMANDS SET SUCCESSFULLY ✅")
         print(f"{'='*40}\n")
+        
+        # 3. Pollingni boshlash
         bot.infinity_polling()
+        
     except Exception as e:
-        print(f"ERROR: {e}")
+        print(f"CRITICAL ERROR: {e}")

@@ -537,6 +537,77 @@ async def cmd_start(message: Message):
         reply_markup=get_main_menu_keyboard(lang)
     )
 
+@router.message(Command("help"))
+async def cmd_help(message: Message):
+    """Yordam va yo'riqnoma"""
+    user_id = message.from_user.id
+    lang = await user_db.get_language(user_id) or "uz"
+    
+    if lang == "uz":
+        help_text = """📚 <b>MEMORIZE BOT - YORDAM</b>
+
+<b>🎮 ASOSIY KOMANDALAR:</b>
+/start - Botni qayta ishga tushirish
+/help - Bu yordam matni
+/game - So'z o'yinini boshlash
+/avtogame - Avtomatik rejim (vaqt bo'yicha)
+/bo'limlar - Topiklar va so'zlarni ko'rish
+/exam_doc - Imtihon fayli yaratish
+/download_words - Lug'atni yuklash
+/sozlamalar - Til va sozlamalar
+
+<b>✏️ SO'Z TAHRIRLASH:</b>
+• <code>e.eski_so'z.yangi_so'z</code>
+• Masalan: <code>e.안녕.좋은아침</code>
+
+<b>🗑 SO'Z O'CHIRISH:</b>
+• Raqam: <code>1</code> yoki <code>1,3,5</code>
+• So'z: <code>안녕</code>
+
+<b>🔍 SO'Z QIDIRISH:</b>
+• <code>s.so'z</code>
+• Masalan: <code>s.안녕</code>
+
+<b>⭐ YULDUZLI SO'ZLAR:</b>
+• So'z qo'shishda <code>*</code> bilan boshlang
+• Masalan: <code>*안녕 salom</code>
+• Maxsus rejimda o'yin va imtihon
+
+💡 <i>Har yerdan e. va s. ishlatishingiz mumkin!</i>"""
+    else:
+        help_text = """📚 <b>MEMORIZE BOT - 도움말</b>
+
+<b>🎮 기본 명령어:</b>
+/start - 봇 재시작
+/help - 이 도움말
+/game - 단어 게임 시작
+/avtogame - 자동 모드 (시간별)
+/bo'limlar - 토픽 및 단어 보기
+/exam_doc - 시험 파일 만들기
+/download_words - 사전 다운로드
+/sozlamalar - 언어 및 설정
+
+<b>✏️ 단어 수정:</b>
+• <code>e.이전_단어.새_단어</code>
+• 예: <code>e.안녕.좋은아침</code>
+
+<b>🗑 단어 삭제:</b>
+• 번호: <code>1</code> 또는 <code>1,3,5</code>
+• 단어: <code>안녕</code>
+
+<b>🔍 단어 검색:</b>
+• <code>s.단어</code>
+• 예: <code>s.안녕</code>
+
+<b>⭐ 별표 단어:</b>
+• 단어 추가 시 <code>*</code>로 시작
+• 예: <code>*안녕 salom</code>
+• 특별 모드 게임 및 시험
+
+💡 <i>어디서나 e. 와 s. 를 사용할 수 있습니다!</i>"""
+    
+    await message.answer(help_text, parse_mode="HTML")
+
 # /sozlamalar command
 @router.message(Command("sozlamalar"))
 async def cmd_settings(message: Message):
@@ -3211,17 +3282,44 @@ def schedule_exam_checker():
 # ==================== MAIN ====================
 
 async def main():
-    await user_db.init_db()
-    dp.include_router(router)
-    
-    # Avtomatik so'z yuborish
-    asyncio.create_task(send_auto_words())
-    
-    print("✅ Bot ishga tushdi!")
-    print("⏰ Avtomatik so'z yuborish faollashtirildi")
-    print("📝 Exam tizimi faollashtirildi (har kuni 05:00)")
-    
-    await dp.start_polling(bot)
+    try:
+        # 1. Ma'lumotlar bazasini ishga tushirish
+        print("⏳ Ma'lumotlar bazasi ishga tushmoqda...")
+        await user_db.init_db()
+        
+        # 2. Routerni ulash
+        dp.include_router(router)
+        
+        # 3. MENU COMMANDS (Faqat ruxsat berilgan belgilar)
+        from aiogram.types import BotCommand, BotCommandScopeDefault
+        commands = [
+            BotCommand(command="start", description="🏠 Botni qayta ishga tushirish"),
+            BotCommand(command="help", description="❓ Yordam va yo'riqnoma")
+        ]
+        
+        print("📝 Menyu komandalari o'rnatilmoqda...")
+        await bot.set_my_commands(commands, scope=BotCommandScopeDefault())
+        
+        # 4. Avtomatik funksiyani fonda ishga tushirish
+        asyncio.create_task(send_auto_words())
+        
+        # Eski xabarlarni o'tkazib yuborish
+        await bot.delete_webhook(drop_pending_updates=True)
+        
+        print("✅ Bot ishga tushdi!")
+        print("📋 Menu commands o'rnatildi!")
+        print("⏰ Avtomatik so'z yuborish faollashtirildi")
+        
+        # 5. Pollingni boshlash
+        await dp.start_polling(bot)
+        
+    except Exception as e:
+        print(f"❌ BOT ISHGA TUSHISHIDA XATOLIK: {e}")
 
+# Faylni ishga tushirish bloki (SHART!)
 if __name__ == "__main__":
-    asyncio.run(main())
+    try:
+        import asyncio
+        asyncio.run(main())
+    except (KeyboardInterrupt, SystemExit):
+        print("\n🛑 Bot to'xtatildi!")
