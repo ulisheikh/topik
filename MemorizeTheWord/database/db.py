@@ -263,5 +263,3 @@ class UserDatabase:
             now = datetime.now().isoformat()
             await db.execute('INSERT OR IGNORE INTO admins (user_id, added_at) VALUES (?, ?)', (user_id, now))
             await db.commit()
-            
-    

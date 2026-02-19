@@ -478,8 +478,12 @@ async def cmd_download_words(message: Message, state: FSMContext):
     # Format tanlash keyboard
     keyboard = InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(
-            text="📄 Word Document",
-            callback_data="download_all:word"
+            text="📄 Word (한국어→우즈베크어)",
+            callback_data="download_all:word_ko_uz"
+        )],
+        [InlineKeyboardButton(
+            text="📄 Word (우즈베크어→한국어)",
+            callback_data="download_all:word_uz_ko"
         )],
         [InlineKeyboardButton(
             text="📋 JSON File",
@@ -1254,13 +1258,19 @@ async def process_auto_answer(message: Message, state: FSMContext):
     # Keyingi savolga o'tish
     current_step = data.get('auto_current_step', 1)
     max_steps = 10
+    mode = data.get('mode', 'general')
 
     if current_step < max_steps:
-        next_word = dict_handler.get_random_word(
-            user_id,
-            topic=data.get('topic'),
-            section=data.get('section')
-        )
+        # Mode ga qarab keyingi so'zni olish
+        if mode == 'auto_star':
+            next_word = dict_handler.get_random_star_word(user_id)  # YANGI!
+        else:
+            next_word = dict_handler.get_random_word(
+                user_id,
+                topic=data.get('topic'),
+                section=data.get('section')
+            )
+        
         if next_word:
             new_step = current_step + 1
             await state.update_data(current_word=next_word, auto_current_step=new_step)
@@ -1349,7 +1359,8 @@ async def auto_select_time(callback: CallbackQuery, state: FSMContext):
     
     markup = InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text=get_text(lang, "btn_general_mode"), callback_data="auto_mode_general")],
-        [InlineKeyboardButton(text=get_text(lang, "btn_custom_mode"), callback_data="auto_mode_custom")]
+        [InlineKeyboardButton(text=get_text(lang, "btn_custom_mode"), callback_data="auto_mode_custom")],
+        [InlineKeyboardButton(text="⭐ Yulduzli so'zlar", callback_data="auto_mode_star")]
     ])
     
     await state.set_state(AutoPlayState.selecting_mode)
@@ -1418,6 +1429,91 @@ async def auto_custom_mode(callback: CallbackQuery, state: FSMContext):
         parse_mode="HTML"
     )
     await callback.answer()
+
+# ============================================
+# AVTO YULDUZLI SO'ZLAR REJIMI
+# ============================================
+
+@router.callback_query(F.data == "auto_mode_star")
+async def auto_star_mode(callback: CallbackQuery, state: FSMContext):
+    """Avtogame - yulduzli so'zlar"""
+    user_id = callback.from_user.id
+    lang = await user_db.get_language(user_id) or "uz"
+    
+    # Yulduzli so'zlar borligini tekshirish
+    star_words = dict_handler.get_star_words(user_id)
+    
+    if not star_words:
+        await callback.answer(
+            "❌ Yulduzli so'zlar yo'q!\n\n"
+            "So'z qo'shishda * bilan boshlang:\n"
+            "*안녕 salom",
+            show_alert=True
+        )
+        return
+    
+    # Yo'nalish tanlash
+    keyboard = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="🇺🇿 Uz → 🇰🇷 Ko", callback_data="auto_dir_star_uz_ko")],
+        [InlineKeyboardButton(text="🇰🇷 Ko → 🇺🇿 Uz", callback_data="auto_dir_star_ko_uz")],
+        [InlineKeyboardButton(text="◀️ Orqaga", callback_data="auto_back_to_mode")]
+    ])
+    
+    await callback.message.edit_text(
+        f"⭐ <b>Yulduzli so'zlar: {len(star_words)} ta</b>\n\n"
+        f"🎮 Tarjima yo'nalishini tanlang:",
+        reply_markup=keyboard,
+        parse_mode="HTML"
+    )
+    await callback.answer()
+
+
+@router.callback_query(F.data.startswith("auto_dir_star_"))
+async def auto_star_direction_selected(callback: CallbackQuery, state: FSMContext):
+    """Yulduzli so'zlar yo'nalishi tanlandi - avtogame boshlash"""
+    direction = callback.data.replace("auto_dir_star_", "")
+    user_id = callback.from_user.id
+    lang = await user_db.get_language(user_id) or "uz"
+    
+    # Birinchi yulduzli so'zni olish
+    word = dict_handler.get_random_star_word(user_id)
+    
+    if not word:
+        await callback.answer("❌ Yulduzli so'zlar topilmadi!", show_alert=True)
+        return
+    
+    # Avtogame ma'lumotlarini saqlash
+    data = await state.get_data()
+    interval = data.get('auto_interval', 15)
+    
+    await state.update_data(
+        mode='auto_star',
+        direction=direction,
+        current_word=word,
+        start_time=datetime.now().timestamp(),
+        question_count=1,
+        last_auto_sent=0  # Darhol birinchi so'zni yuborish uchun
+    )
+    await state.set_state(AutoPlayState.playing)
+    
+    # Direction ga qarab savol yaratish
+    if direction == "uz_ko":
+        question_text = word['uzbek']
+        answer_lang = "Koreys"
+    else:
+        question_text = word['korean']
+        answer_lang = "O'zbek"
+    
+    await callback.message.edit_text(
+        f"⭐ <b>Yulduzli so'z #1:</b>\n>>> <i>{question_text}</i>\n\n"
+        f"📍 {word['topic']} › {word['section']} › {word['chapter']}\n"
+        f"📝 {answer_lang} tilida yozing:\n\n"
+        f"⏰ Avtomatik rejim: har {interval} daqiqada yangi so'z",
+        reply_markup=get_game_keyboard(lang),
+        parse_mode="HTML"
+    )
+    await callback.answer()
+
 
 # Avto topik tanlandi - bo'lim tanlash
 @router.callback_query(F.data.startswith("auto_topic_"))
@@ -1497,12 +1593,17 @@ async def send_auto_words():
                     if now - last_sent >= interval_sec:
                         lang = await user_db.get_language(user_id) or "uz"
                         direction = data.get('direction', 'uz_ko')
+                        mode = data.get('mode', 'general')
                         
-                        word = dict_handler.get_random_word(
-                            user_id,
-                            topic=data.get('topic'),
-                            section=data.get('section')
-                        )
+                        # Mode ga qarab so'z olish
+                        if mode == 'auto_star':
+                            word = dict_handler.get_random_star_word(user_id)  # YANGI!
+                        else:
+                            word = dict_handler.get_random_word(
+                                user_id,
+                                topic=data.get('topic'),
+                                section=data.get('section')
+                            )
                         
                         if word:
                             await state.update_data(
@@ -1961,7 +2062,15 @@ async def exam_mode_selected(callback: CallbackQuery, state: FSMContext):
         # Filtrlash
         words = []
         for w in all_words:
-            if w.get('topic') == topic and w.get('section') == section:
+            # Topic formatlarini moslashtirish: "35-topik" va "Topik-35"
+            w_topic = w.get('topic', '')
+            # Agar w_topic "Topik-35" formatida bo'lsa, uni "35-topik" ga aylantirish
+            if w_topic.startswith("Topik-"):
+                w_topic_normalized = w_topic.replace("Topik-", "") + "-topik"
+            else:
+                w_topic_normalized = w_topic
+            
+            if w_topic_normalized == topic and w.get('section') == section:
                 words.append((w['korean'], w['uzbek']))
         
         print(f"\n{'='*50}")
@@ -2207,8 +2316,8 @@ async def download_all_words(callback: CallbackQuery, state: FSMContext):
             )
             return
         
-        if format_type == "word":
-            # Word Document yaratish
+        if format_type == "word_ko_uz":
+            # Word Document (한국어 → 우즈베크어)
             all_words = [(w['korean'], w['uzbek']) for w in all_words_data]
             
             # Word fayl yaratish
@@ -2225,6 +2334,30 @@ async def download_all_words(callback: CallbackQuery, state: FSMContext):
                 caption=f"✅ Lug'at tayyor!\n\n"
                        f"📊 Jami: {len(all_words)} so'z\n"
                        f"🔄 한국어 ➔ 우즈베크어"
+            )
+            
+            # Faylni o'chirish
+            if os.path.exists(filepath):
+                os.remove(filepath)
+        
+        elif format_type == "word_uz_ko":
+            # Word Document (우즈베크어 → 한국어)
+            all_words = [(w['korean'], w['uzbek']) for w in all_words_data]
+            
+            # Word fayl yaratish
+            filepath = create_exam_word(
+                all_words, 
+                location="📚 Barcha so'zlar", 
+                mode="uz_to_kr"
+            )
+            
+            # Faylni yuborish
+            file = FSInputFile(filepath)
+            await callback.message.answer_document(
+                document=file,
+                caption=f"✅ Lug'at tayyor!\n\n"
+                       f"📊 Jami: {len(all_words)} so'z\n"
+                       f"🔄 우즈베크어 ➔ 한국어"
             )
             
             # Faylni o'chirish
