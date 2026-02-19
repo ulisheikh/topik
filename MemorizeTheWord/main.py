@@ -490,6 +490,10 @@ async def cmd_download_words(message: Message, state: FSMContext):
             callback_data="download_all:json"
         )],
         [InlineKeyboardButton(
+            text="📄 Word (🇰🇷 + 🇺🇿 tarjima bilan)",
+            callback_data="download_all:word_both"
+        )],
+        [InlineKeyboardButton(
             text="◀️ Bekor qilish",
             callback_data="cancel_download"
         )]
@@ -2040,8 +2044,8 @@ async def cmd_exam_list(message: Message, state: FSMContext):
 
 @router.callback_query(F.data.startswith("exam_mode:"))
 async def exam_mode_selected(callback: CallbackQuery, state: FSMContext):
-    """Yo'nalish tanlandi - fayl yaratish"""
-    mode = callback.data.split(":")[1]
+    """Yo'nalish tanlandi - fayl yaratamiz va yuboramiz"""
+    mode = callback.data.split(":")[1]  # kr_to_uz, uz_to_kr yoki both
     
     data = await state.get_data()
     topic = data.get('exam_topic')
@@ -2056,42 +2060,32 @@ async def exam_mode_selected(callback: CallbackQuery, state: FSMContext):
     await callback.message.edit_text("⏳ 파일을 준비 중입니다...\n(Fayl tayyorlanmoqda...)")
     
     try:
-        # So'zlarni olish (to'g'ridan-to'g'ri get_all_words dan)
-        all_words = dict_handler.get_all_words(user_id)
+        # So'zlarni olish - get_all_words() orqali (/download_words bilan bir xil mantiq)
+        # topic state da "35-topik" formatida, get_all_words da "Topik-35" formatida
+        topic_key = f"Topik-{topic.replace('-topik', '')}"
         
-        # Filtrlash
+        all_words_data = dict_handler.get_all_words(user_id)
+        
+        # topic_key va section bo'yicha filter
         words = []
-        for w in all_words:
-            # Topic formatlarini moslashtirish: "35-topik" va "Topik-35"
-            w_topic = w.get('topic', '')
-            # Agar w_topic "Topik-35" formatida bo'lsa, uni "35-topik" ga aylantirish
-            if w_topic.startswith("Topik-"):
-                w_topic_normalized = w_topic.replace("Topik-", "") + "-topik"
-            else:
-                w_topic_normalized = w_topic
-            
-            if w_topic_normalized == topic and w.get('section') == section:
-                words.append((w['korean'], w['uzbek']))
+        for w in all_words_data:
+            if w.get('topic', '') == topic_key and w.get('section', '') == section:
+                korean_clean = w['korean'].lstrip('*') if isinstance(w['korean'], str) else w['korean']
+                uzbek_clean = w['uzbek'].lstrip('*') if isinstance(w['uzbek'], str) else w['uzbek']
+                words.append((korean_clean, uzbek_clean))
         
         print(f"\n{'='*50}")
-        print(f"Fayl yaratish: {topic} › {section}")
-        print(f"Topilgan so'zlar: {len(words)}")
-        print(f"Mode: {mode}")
+        print(f"exam_mode_selected: {topic} ({topic_key}) › {section}")
+        print(f"Topilgan so'zlar: {len(words)}, Mode: {mode}")
         print(f"{'='*50}\n")
         
         if not words:
             await callback.message.edit_text(
-                "❌ Bu bo'limda so'zlar topilmadi!\n\n"
-                "Debug info:\n"
-                f"• Topic: {topic}\n"
-                f"• Section: {section}\n"
-                f"• Jami so'zlar: {len(all_words)}"
+                f"❌ Bu bo'limda so'zlar topilmadi!\n"
+                f"(topic={topic_key}, section={section})"
             )
             await state.clear()
             return
-        
-        # Random aralashtirish
-        # random.shuffle(words)
         
         # Bo'lim nomini koreyscha
         section_map = {
@@ -2101,16 +2095,18 @@ async def exam_mode_selected(callback: CallbackQuery, state: FSMContext):
             'general': '일반'
         }
         section_korean = section_map.get(section, section)
-        
-        # Manzil
         location = f"{topic} › {section_korean}"
         
         # Word fayl yaratish
-        filepath = create_exam_word(words, location=location, mode=mode)
+        if mode == "both":
+            from utils.exam_generator import create_exam_word_bilingual
+            filepath = create_exam_word_bilingual(words, location=location)
+            mode_text = "🇰🇷 한국어 + 🇺🇿 O'zbekcha"
+        else:
+            filepath = create_exam_word(words, location=location, mode=mode)
+            mode_text = "🇰🇷 ➔ 🇺🇿" if mode == "kr_to_uz" else "🇺🇿 ➔ 🇰🇷"
         
-        # Yuborish
         file = FSInputFile(filepath)
-        mode_text = "🇰🇷 ➔ 🇺🇿" if mode == "kr_to_uz" else "🇺🇿 ➔ 🇰🇷"
         
         await callback.message.answer_document(
             document=file,
@@ -2131,10 +2127,8 @@ async def exam_mode_selected(callback: CallbackQuery, state: FSMContext):
         print(f"Exam error: {e}")
         import traceback
         traceback.print_exc()
-        
         await callback.message.edit_text(
-            f"❌ Xatolik yuz berdi!\n\n"
-            f"Error: {str(e)}"
+            f"❌ Xatolik yuz berdi!\n\nError: {str(e)}"
         )
         await state.clear()
 
@@ -2229,6 +2223,12 @@ async def exam_random_handler(callback: CallbackQuery, state: FSMContext):
         ],
         [
             InlineKeyboardButton(
+                text="🇰🇷 + 🇺🇿 Tarjima bilan (ikki tilda)",
+                callback_data="exam_random_mode:both"
+            )
+        ],
+        [
+            InlineKeyboardButton(
                 text="◀️ Orqaga",
                 callback_data="exam_back_to_sections"
             )
@@ -2258,10 +2258,15 @@ async def exam_random_mode_selected(callback: CallbackQuery, state: FSMContext):
     await callback.message.edit_text("⏳ 파일을 준비 중입니다...")
     
     try:
-        filepath = create_exam_word(words, location="Random", mode=mode)
+        if mode == "both":
+            from utils.exam_generator import create_exam_word_bilingual
+            filepath = create_exam_word_bilingual(words, location="Random")
+            mode_text = "🇰🇷 한국어 + 🇺🇿 O'zbekcha"
+        else:
+            filepath = create_exam_word(words, location="Random", mode=mode)
+            mode_text = "🇰🇷 ➔ 🇺🇿" if mode == "kr_to_uz" else "🇺🇿 ➔ 🇰🇷"
         
         file = FSInputFile(filepath)
-        mode_text = "🇰🇷 ➔ 🇺🇿" if mode == "kr_to_uz" else "🇺🇿 ➔ 🇰🇷"
         
         await callback.message.answer_document(
             document=file,
@@ -2391,6 +2396,27 @@ async def download_all_words(callback: CallbackQuery, state: FSMContext):
             )
             
             # Faylni o'chirish
+            if os.path.exists(filepath):
+                os.remove(filepath)
+        
+        elif format_type == "word_both":
+            # Har ikki tilda - tarjima bilan birga
+            from utils.exam_generator import create_exam_word_bilingual
+            all_words = [(w['korean'], w['uzbek']) for w in all_words_data]
+            
+            filepath = create_exam_word_bilingual(
+                all_words,
+                location="📚 Barcha so'zlar"
+            )
+            
+            file = FSInputFile(filepath)
+            await callback.message.answer_document(
+                document=file,
+                caption=f"✅ Lug'at tayyor!\n\n"
+                       f"📊 Jami: {len(all_words)} so'z\n"
+                       f"🔄 🇰🇷 한국어 + 🇺🇿 O'zbekcha"
+            )
+            
             if os.path.exists(filepath):
                 os.remove(filepath)
         
@@ -2633,9 +2659,9 @@ async def exam_star_handler(callback: CallbackQuery):
 
 @router.callback_query(F.data.startswith("exam_star_"))
 async def exam_star_direction_handler(callback: CallbackQuery):
-    """Yulduzli so'zlar .docx yaratish"""
+    """Yulduzli so'zlar .docx yaratish - UCHTA VARIANT"""
     user_id = callback.from_user.id
-    direction = callback.data.replace("exam_star_", "")  # uz_ko yoki ko_uz
+    direction = callback.data.replace("exam_star_", "")  # uz_ko, ko_uz, yoki both
     
     await callback.message.edit_text("⏳ Fayl yaratilmoqda...")
     
@@ -2649,16 +2675,22 @@ async def exam_star_direction_handler(callback: CallbackQuery):
     # So'zlarni tayyorlash (korean, uzbek) tuple sifatida
     words_list = [(w['korean'], w['uzbek']) for w in star_words]
     
-    # Mode aniqlash
-    mode = "kr_to_uz" if direction == "ko_uz" else "uz_to_kr"
-    
     # Location
     location = f"⭐ Yulduzli so'zlar ({len(words_list)} ta)"
     
     try:
-        # .docx yaratish
-        from utils.exam_generator import create_exam_word
-        filepath = create_exam_word(words_list, location=location, mode=mode)
+        # UCHTA VARIANT
+        if direction == "both":
+            # IKI TILDA (한국어 | O'zbekcha)
+            from utils.exam_generator import create_exam_word_bilingual
+            filepath = create_exam_word_bilingual(words_list, location=location)
+            mode_text = "🇰🇷 + 🇺🇿 (Ikki tilda)"
+        else:
+            # BITTA TILDA (Savol/Javob formatida)
+            mode = "kr_to_uz" if direction == "ko_uz" else "uz_to_kr"
+            from utils.exam_generator import create_exam_word
+            filepath = create_exam_word(words_list, location=location, mode=mode)
+            mode_text = "🇰🇷 Ko → 🇺🇿 Uz" if mode == "kr_to_uz" else "🇺🇿 Uz → 🇰🇷 Ko"
         
         # Faylni yuborish
         from aiogram.types import FSInputFile
@@ -2668,7 +2700,7 @@ async def exam_star_direction_handler(callback: CallbackQuery):
             document=doc_file,
             caption=f"⭐ <b>Yulduzli so'zlar</b>\n\n"
                     f"📊 Jami: {len(words_list)} ta so'z\n"
-                    f"🎯 Yo'nalish: {'🇰🇷 Ko → 🇺🇿 Uz' if mode == 'kr_to_uz' else '🇺🇿 Uz → 🇰🇷 Ko'}",
+                    f"🎯 Format: {mode_text}",
             parse_mode="HTML"
         )
         
@@ -2777,6 +2809,12 @@ async def exam_section_selected(callback: CallbackQuery, state: FSMContext):
         ],
         [
             InlineKeyboardButton(
+                text="🇰🇷 + 🇺🇿 Tarjima bilan (ikki tilda)",
+                callback_data="exam_mode:both"
+            )
+        ],
+        [
+            InlineKeyboardButton(
                 text="◀️ Orqaga",
                 callback_data="exam_back_to_sections"
             )
@@ -2832,7 +2870,11 @@ async def exam_star_handler(callback: CallbackQuery):
 async def exam_star_direction_handler(callback: CallbackQuery):
     """Yulduzli so'zlar .docx yaratish"""
     user_id = callback.from_user.id
-    direction = callback.data.replace("exam_star_", "")  # uz_ko yoki ko_uz
+    direction = callback.data.replace("exam_star_", "")  # uz_ko, ko_uz yoki both
+    
+    # exam_back_main uchun bu handler ishga tushmasligi uchun
+    if direction == "back_main":
+        return
     
     await callback.message.edit_text("⏳ Fayl yaratilmoqda...")
     
@@ -2846,16 +2888,18 @@ async def exam_star_direction_handler(callback: CallbackQuery):
     # So'zlarni tayyorlash (korean, uzbek) tuple sifatida
     words_list = [(w['korean'], w['uzbek']) for w in star_words]
     
-    # Mode aniqlash
-    mode = "kr_to_uz" if direction == "ko_uz" else "uz_to_kr"
-    
-    # Location
     location = f"⭐ Yulduzli so'zlar ({len(words_list)} ta)"
     
     try:
-        # .docx yaratish
-        from exam_generator import create_exam_word
-        filepath = create_exam_word(words_list, location=location, mode=mode)
+        if direction == "both":
+            from utils.exam_generator import create_exam_word_bilingual
+            filepath = create_exam_word_bilingual(words_list, location=location)
+            mode_label = "🇰🇷 한국어 + 🇺🇿 O'zbekcha"
+        else:
+            # Mode aniqlash
+            mode = "kr_to_uz" if direction == "ko_uz" else "uz_to_kr"
+            filepath = create_exam_word(words_list, location=location, mode=mode)
+            mode_label = "🇰🇷 Ko → 🇺🇿 Uz" if direction == "ko_uz" else "🇺🇿 Uz → 🇰🇷 Ko"
         
         # Faylni yuborish
         from aiogram.types import FSInputFile
@@ -2865,7 +2909,7 @@ async def exam_star_direction_handler(callback: CallbackQuery):
             document=doc_file,
             caption=f"⭐ <b>Yulduzli so'zlar</b>\n\n"
                     f"📊 Jami: {len(words_list)} ta so'z\n"
-                    f"🎯 Yo'nalish: {'🇰🇷 Ko → 🇺🇿 Uz' if mode == 'kr_to_uz' else '🇺🇿 Uz → 🇰🇷 Ko'}",
+                    f"🎯 Yo'nalish: {mode_label}",
             parse_mode="HTML"
         )
         
@@ -2937,104 +2981,6 @@ async def exam_back_main_handler(callback: CallbackQuery):
         parse_mode="HTML"
     )
     await callback.answer()
-
-
-
-# ============================================
-# 3. YO'NALISH TANLANDI - FAYL YARATISH
-# ============================================
-
-@router.callback_query(F.data.startswith("exam_mode:"))
-async def exam_mode_selected(callback: CallbackQuery, state: FSMContext):
-    """Yo'nalish tanlandi - fayl yaratamiz va yuboramiz"""
-    # Mode olish
-    mode = callback.data.split(":")[1]  # kr_to_uz yoki uz_to_kr
-    
-    # State dan ma'lumotlarni olish
-    data = await state.get_data()
-    topic = data.get('exam_topic')
-    section = data.get('exam_section')
-    user_id = callback.from_user.id
-    
-    if not topic or not section:
-        await callback.answer("❌ Xatolik yuz berdi!", show_alert=True)
-        await state.clear()
-        return
-    
-    # Kutish xabari
-    await callback.message.edit_text("⏳ 파일을 준비 중입니다...\n(Fayl tayyorlanmoqda...)")
-    
-    try:
-        # So'zlarni olish
-        user_data = dict_handler.load_user_data(user_id)
-        
-        if topic not in user_data or section not in user_data[topic]:
-            await callback.message.edit_text("❌ Bu bo'limda so'zlar topilmadi!")
-            await state.clear()
-            return
-        
-        # Barcha so'zlarni yig'ish
-        words = []
-        for chapter_data in user_data[topic][section].values():
-            for korean, uzbek in chapter_data.items():
-                words.append((korean, uzbek))
-        
-        if not words:
-            await callback.message.edit_text("❌ So'zlar topilmadi!")
-            await state.clear()
-            return
-        
-        # Random aralashtirish
-        # random.shuffle(words)
-        
-        # Bo'lim nomini koreyscha
-        section_map = {
-            'reading': '읽기',
-            'writing': '쓰기',
-            'listening': '듣기'
-        }
-        section_korean = section_map.get(section, section)
-        
-        # Manzil (location)
-        location = f"{topic} › {section_korean}"
-        
-        # Word fayl yaratish (maksimal 25 ta so'z)
-        filepath = create_exam_word(words[:25], location=location, mode=mode)
-        
-        # Faylni yuborish
-        file = FSInputFile(filepath)
-        
-        mode_text = "🇰🇷 ➔ 🇺🇿" if mode == "kr_to_uz" else "🇺🇿 ➔ 🇰🇷"
-        
-        await callback.message.answer_document(
-            document=file,
-            caption=f"✅ 시험지가 준비되었습니다!\n\n"
-                   f"📂 {location}\n"
-                   f"🔄 {mode_text}\n"
-                   f"📊 {len(words[:25])}개 단어"
-        )
-        
-        # Kutish xabarini o'chirish
-        await callback.message.delete()
-        
-        # Faylni serverdan o'chirish
-        if os.path.exists(filepath):
-            os.remove(filepath)
-        
-        await state.clear()
-        
-    except Exception as e:
-        print(f"Exam file creation error: {e}")
-        await callback.message.edit_text(
-            f"❌ 오류가 발생했습니다.\n(Xatolik yuz berdi)\n\n"
-            f"Iltimos qayta urinib ko'ring."
-        )
-        await state.clear()
-
-
-# ============================================
-# 4. ORQAGA QAYTISH (BO'LIMLAR RO'YXATIGA)
-# ============================================
 
 @router.callback_query(F.data == "exam_back_to_sections")
 async def exam_back_to_sections(callback: CallbackQuery, state: FSMContext):
@@ -3117,6 +3063,12 @@ async def exam_random_handler(callback: CallbackQuery, state: FSMContext):
         ],
         [
             InlineKeyboardButton(
+                text="🇰🇷 + 🇺🇿 Tarjima bilan (ikki tilda)",
+                callback_data="exam_random_mode:both"
+            )
+        ],
+        [
+            InlineKeyboardButton(
                 text="◀️ Orqaga",
                 callback_data="exam_back_to_sections"
             )
@@ -3146,10 +3098,15 @@ async def exam_random_mode_selected(callback: CallbackQuery, state: FSMContext):
     await callback.message.edit_text("⏳ 파일을 준비 중입니다...")
     
     try:
-        filepath = create_exam_word(words, location="Random", mode=mode)
+        if mode == "both":
+            from utils.exam_generator import create_exam_word_bilingual
+            filepath = create_exam_word_bilingual(words, location="Random")
+            mode_text = "🇰🇷 한국어 + 🇺🇿 O'zbekcha"
+        else:
+            filepath = create_exam_word(words, location="Random", mode=mode)
+            mode_text = "🇰🇷 ➔ 🇺🇿" if mode == "kr_to_uz" else "🇺🇿 ➔ 🇰🇷"
         
         file = FSInputFile(filepath)
-        mode_text = "🇰🇷 ➔ 🇺🇿" if mode == "kr_to_uz" else "🇺🇿 ➔ 🇰🇷"
         
         await callback.message.answer_document(
             document=file,

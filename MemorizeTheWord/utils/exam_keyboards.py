@@ -21,6 +21,7 @@ def get_exam_star_direction_keyboard() -> InlineKeyboardMarkup:
     keyboard = [
         [InlineKeyboardButton(text="🇺🇿 Uz → 🇰🇷 Ko", callback_data="exam_star_uz_ko")],
         [InlineKeyboardButton(text="🇰🇷 Ko → 🇺🇿 Uz", callback_data="exam_star_ko_uz")],
+        [InlineKeyboardButton(text="🇰🇷 + 🇺🇿 Tarjima bilan (ikki tilda)", callback_data="exam_star_both")],
         [InlineKeyboardButton(text="🔙 뒤로", callback_data="exam_back_main")]
     ]
     return InlineKeyboardMarkup(inline_keyboard=keyboard)
