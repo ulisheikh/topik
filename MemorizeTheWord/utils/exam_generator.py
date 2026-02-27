@@ -6,6 +6,12 @@ from docx.enum.text import WD_ALIGN_PARAGRAPH
 from docx.enum.table import WD_ALIGN_VERTICAL
 from docx.oxml import OxmlElement
 from docx.oxml.ns import qn
+from config import (
+    WORD_COL_NUMBER_WIDTH,
+    WORD_COL_QUESTION_WIDTH,
+    WORD_COL_ANSWER_WIDTH,
+    WORD_ROW_HEIGHT
+)
 
 def set_cell_border(cell, **kwargs):
     """Kataklar uchun qalin qora chiziq"""
@@ -22,7 +28,7 @@ def set_cell_border(cell, **kwargs):
             tcBorders.append(edge)
     tcPr.append(tcBorders)
 
-def create_exam_word(words, location=None, mode="kr_to_uz"):
+def create_exam_word(words, location=None, mode="kr_to_uz", filename_prefix="exam"):
     """BARCHA so'zlarni bir faylda chiqarish - 20 tadan listlar bo'lib"""
     doc = Document()
 
@@ -35,7 +41,7 @@ def create_exam_word(words, location=None, mode="kr_to_uz"):
     section.left_margin = Cm(0.8)
     section.right_margin = Cm(0.8)
 
-    # So'zlarni 25 tadan guruhlar bo'lib ajratish
+    # So'zlarni 20 tadan guruhlar bo'lib ajratish
     groups = split_words_into_groups(words)
     
     # Har bir guruh uchun alohida jadval yaratish
@@ -58,10 +64,10 @@ def create_exam_word(words, location=None, mode="kr_to_uz"):
         table.style = 'Table Grid'
         table.alignment = WD_ALIGN_PARAGRAPH.CENTER
 
-        # USTUN O'LCHAMLARI
-        table.columns[0].width = Cm(1.2)  # 번호 (№)
-        table.columns[1].width = Cm(5.0)  # 질문 (Savol)
-        table.columns[2].width = Cm(7.0)  # 답안 (Javob)
+        # USTUN O'LCHAMLARI (config dan)
+        table.columns[0].width = Cm(WORD_COL_NUMBER_WIDTH)
+        table.columns[1].width = Cm(WORD_COL_QUESTION_WIDTH)
+        table.columns[2].width = Cm(WORD_COL_ANSWER_WIDTH)
 
         # 3. UNIVERSAL SARLAVHALAR
         header_cells = table.rows[0].cells
@@ -82,7 +88,7 @@ def create_exam_word(words, location=None, mode="kr_to_uz"):
         # 4. SO'ZLARNI TO'LDIRISH
         for idx, (korean, uzbek) in enumerate(group_words, 1):
             row = table.add_row()
-            row.height = Cm(0.8)
+            row.height = Cm(WORD_ROW_HEIGHT)
 
             # № (Bold)
             row.cells[0].text = str(idx)
@@ -106,10 +112,10 @@ def create_exam_word(words, location=None, mode="kr_to_uz"):
                     if i == 0:  # Raqamni bold qilish
                         p.runs[0].font.bold = True
 
-    # Saqlash
+    # Saqlash - ANIQ NOM BILAN
     temp_dir = "temp_exams"
     os.makedirs(temp_dir, exist_ok=True)
-    filename = f"exam_{datetime.now().strftime('%H%M%S')}.docx"
+    filename = f"{filename_prefix}.docx"
     filepath = os.path.join(temp_dir, filename)
     doc.save(filepath)
     
@@ -122,7 +128,7 @@ def split_words_into_groups(words, words_per_file=20):
     return groups
 
 
-def create_exam_word_bilingual(words, location=None):
+def create_exam_word_bilingual(words, location=None, filename_prefix="bilingual"):
     """Har ikki tilda (한국어 | O'zbek) jadval - savol/javob yo'q, tarjima bilan birga"""
     doc = Document()
 
@@ -155,9 +161,10 @@ def create_exam_word_bilingual(words, location=None):
         table.style = 'Table Grid'
         table.alignment = WD_ALIGN_PARAGRAPH.CENTER
 
-        table.columns[0].width = Cm(1.2)
-        table.columns[1].width = Cm(6.0)
-        table.columns[2].width = Cm(5.8)
+        # Config dan o'lchamlar
+        table.columns[0].width = Cm(WORD_COL_NUMBER_WIDTH)
+        table.columns[1].width = Cm(WORD_COL_QUESTION_WIDTH)
+        table.columns[2].width = Cm(WORD_COL_ANSWER_WIDTH)
 
         # Sarlavha qatori
         header_cells = table.rows[0].cells
@@ -181,7 +188,7 @@ def create_exam_word_bilingual(words, location=None):
             uzbek_clean = uzbek.lstrip('*') if isinstance(uzbek, str) else uzbek
 
             row = table.add_row()
-            row.height = Cm(0.8)
+            row.height = Cm(WORD_ROW_HEIGHT)
 
             row.cells[0].text = str(idx)
             row.cells[1].text = korean_clean
@@ -197,10 +204,10 @@ def create_exam_word_bilingual(words, location=None):
                     if i == 0:
                         p.runs[0].font.bold = True
 
-    # Saqlash
+    # Saqlash - ANIQ NOM BILAN
     temp_dir = "temp_exams"
     os.makedirs(temp_dir, exist_ok=True)
-    filename = f"bilingual_{datetime.now().strftime('%H%M%S')}.docx"
+    filename = f"{filename_prefix}.docx"
     filepath = os.path.join(temp_dir, filename)
     doc.save(filepath)
 

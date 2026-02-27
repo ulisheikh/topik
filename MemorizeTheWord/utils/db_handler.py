@@ -174,3 +174,83 @@ class DictionaryHandler:
         if isinstance(text, str):
             return text.lstrip('*')
         return text
+    
+    # ============================================
+    # BILMAYDIGAN SO'ZLAR (** bilan belgilangan)
+    # ============================================
+    
+    def mark_as_unknown(self, user_id, korean, uzbek, topic, section, chapter):
+        """So'zni bilmaydigan deb belgilash (** qo'shish)"""
+        data = self.load_user_data(user_id)
+        
+        # Topic formatini to'g'rilash
+        if not topic.startswith("Topik-"):
+            topic_key = f"Topik-{topic.replace('-topik', '')}"
+        else:
+            topic_key = topic
+        
+        # Chapter formatini to'g'rilash
+        chapter_key = chapter.replace("-savol", "") + "-savol so'zlari"
+        
+        try:
+            if topic_key in data and section in data[topic_key]:
+                if chapter_key in data[topic_key][section]:
+                    words = data[topic_key][section][chapter_key]
+                    
+                    # So'zni topish (yulduz bilan yoki yuldusiz)
+                    original_key = None
+                    for k in words.keys():
+                        if k.lstrip('*').lstrip('*') == korean.lstrip('*').lstrip('*'):
+                            original_key = k
+                            break
+                    
+                    if original_key:
+                        # Agar allaqachon ** bo'lsa, o'zgartirmaymiz
+                        if not original_key.startswith('**'):
+                            # Eski kalitni o'chirish va ** bilan qayta qo'shish
+                            old_value = words.pop(original_key)
+                            new_key = '**' + korean.lstrip('*').lstrip('*')
+                            words[new_key] = old_value
+                            
+                            # Saqlash
+                            file_path = self.get_user_dict_file(user_id)
+                            with open(file_path, 'w', encoding='utf-8') as f:
+                                json.dump(data, f, ensure_ascii=False, indent=2)
+                            return True
+            return False
+        except Exception as e:
+            print(f"mark_as_unknown error: {e}")
+            return False
+    
+    def get_unknown_words(self, user_id):
+        """Barcha bilmaydigan so'zlarni olish (** bilan boshlanganlar)"""
+        data = self.load_user_data(user_id)
+        unknown_words = []
+        word_id = 1
+        
+        for topic_key, sections in data.items():
+            for section_key, questions in sections.items():
+                for question_key, word_dict in questions.items():
+                    chapter = question_key.replace("-savol so'zlari", "") + "-savol"
+                    for korean, uzbek in word_dict.items():
+                        # Agar koreys yoki o'zbek so'z ** bilan boshlansa
+                        if korean.startswith('**') or uzbek.startswith('**'):
+                            unknown_words.append({
+                                'id': word_id,
+                                'korean': korean.lstrip('*'),  # ** ni olib tashlash
+                                'uzbek': uzbek.lstrip('*'),
+                                'topic': topic_key,
+                                'section': section_key,
+                                'chapter': chapter,
+                                'original_korean': korean,
+                                'original_uzbek': uzbek
+                            })
+                        word_id += 1
+        return unknown_words
+    
+    def get_random_unknown_word(self, user_id):
+        """Tasodifiy bilmaydigan so'z olish"""
+        unknown_words = self.get_unknown_words(user_id)
+        if not unknown_words:
+            return None
+        return random.choice(unknown_words)

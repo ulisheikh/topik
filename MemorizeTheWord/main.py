@@ -35,6 +35,7 @@ from utils.exam_keyboards import (
 from utils.exam_keyboards import get_exam_main_keyboard
 
 from config import EXAM_AUTO_TIME, EXAM_WORDS_PER_FILE
+from utils.exam_generator import create_exam_word, split_words_into_groups, create_exam_word_bilingual
 
 def get_text(lang: str, key: str, **kwargs) -> str:
     """Game matnini olish"""
@@ -49,6 +50,7 @@ class GameModeState(StatesGroup):
     selecting_mode = State()
     selecting_topic = State()
     selecting_section = State()
+    waiting_for_range = State()  # ← YANGI
     playing = State()
 
 class AutoPlayState(StatesGroup):
@@ -317,15 +319,24 @@ def get_main_menu_keyboard(lang: str) -> InlineKeyboardMarkup:
     ]
     return InlineKeyboardMarkup(inline_keyboard=keyboard)
 
+def get_game_reply_keyboard(lang: str) -> ReplyKeyboardMarkup:
+    """O'yin klaviaturasi (Bilmayman va To'xtatish - REPLY)"""
+    keyboard = [
+        [KeyboardButton(text="❌ Bilmayman")],
+        [KeyboardButton(text="🛑 To'xtatish")]
+    ]
+    return ReplyKeyboardMarkup(keyboard=keyboard, resize_keyboard=True)
+
 def get_game_keyboard(lang: str) -> InlineKeyboardMarkup:
     """O'yin klaviaturasi (To'xtatish tugmasi - INLINE)"""
     keyboard = [
         [InlineKeyboardButton(
-            text=get_text(lang, "btn_stop_game"),
+            text=get_text(lang, "btn_stop_game") if lang else "🛑 To'xtatish",
             callback_data="stop_game"
         )]
     ]
     return InlineKeyboardMarkup(inline_keyboard=keyboard)
+
 
 def get_chapters_topics_keyboard(user_id: int, lang: str) -> InlineKeyboardMarkup:
     """Topiklar ro'yxati"""
@@ -741,11 +752,30 @@ async def cmd_game(message: Message, state: FSMContext):
     user_id = message.from_user.id
     lang = await user_db.get_language(user_id) or "uz"
     
-    markup = InlineKeyboardMarkup(inline_keyboard=[
+    # Yulduzli va bilmaydigan so'zlar sonini tekshirish
+    star_words = dict_handler.get_star_words(user_id)
+    unknown_words = dict_handler.get_unknown_words(user_id)
+    
+    keyboard = [
         [InlineKeyboardButton(text=get_text(lang, "btn_general_mode"), callback_data="game_mode_general")],
-        [InlineKeyboardButton(text=get_text(lang, "btn_custom_mode"), callback_data="game_mode_custom")],
-        [InlineKeyboardButton(text=get_text(lang, "btn_star_mode"), callback_data="game_mode_star")]  # ← YANGI!
-    ])
+        [InlineKeyboardButton(text=get_text(lang, "btn_custom_mode"), callback_data="game_mode_custom")]
+    ]
+    
+    # Yulduzli so'zlar tugmasi
+    if star_words:
+        keyboard.append([InlineKeyboardButton(
+            text=f"⭐ Yulduzli so'zlar ({len(star_words)} ta)", 
+            callback_data="game_mode_star"
+        )])
+    
+    # Bilmaydigan so'zlar tugmasi
+    if unknown_words:
+        keyboard.append([InlineKeyboardButton(
+            text=f"❌ Bilmaydigan so'zlar ({len(unknown_words)} ta)", 
+            callback_data="game_mode_unknown"
+        )])
+    
+    markup = InlineKeyboardMarkup(inline_keyboard=keyboard)
     await state.set_state(GameModeState.selecting_mode)
     await message.answer(get_text(lang, "game_select_mode"), reply_markup=markup, parse_mode="HTML")
 
@@ -754,11 +784,30 @@ async def inline_start_game(callback: CallbackQuery, state: FSMContext):
     user_id = callback.from_user.id
     lang = await user_db.get_language(user_id) or "uz"
     
-    markup = InlineKeyboardMarkup(inline_keyboard=[
+    # Yulduzli va bilmaydigan so'zlar sonini tekshirish
+    star_words = dict_handler.get_star_words(user_id)
+    unknown_words = dict_handler.get_unknown_words(user_id)
+    
+    keyboard = [
         [InlineKeyboardButton(text=get_text(lang, "btn_general_mode"), callback_data="game_mode_general")],
-        [InlineKeyboardButton(text=get_text(lang, "btn_custom_mode"), callback_data="game_mode_custom")],
-        [InlineKeyboardButton(text=get_text(lang, "btn_star_mode"), callback_data="game_mode_star")]  # ← YANGI!
-    ])
+        [InlineKeyboardButton(text=get_text(lang, "btn_custom_mode"), callback_data="game_mode_custom")]
+    ]
+    
+    # Yulduzli so'zlar tugmasi
+    if star_words:
+        keyboard.append([InlineKeyboardButton(
+            text=f"⭐ Yulduzli so'zlar ({len(star_words)} ta)", 
+            callback_data="game_mode_star"
+        )])
+    
+    # Bilmaydigan so'zlar tugmasi
+    if unknown_words:
+        keyboard.append([InlineKeyboardButton(
+            text=f"❌ Bilmaydigan so'zlar ({len(unknown_words)} ta)", 
+            callback_data="game_mode_unknown"
+        )])
+    
+    markup = InlineKeyboardMarkup(inline_keyboard=keyboard)
     
     await state.set_state(GameModeState.selecting_mode)
     await callback.message.edit_text(get_text(lang, "game_select_mode"), reply_markup=markup, parse_mode="HTML")
@@ -826,6 +875,80 @@ async def game_general_direction_selected(callback: CallbackQuery, state: FSMCon
         parse_mode="HTML"
     )
     await callback.answer()
+
+# $$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
+
+@router.message(GameModeState.waiting_for_range)
+async def handle_range_input(message: Message, state: FSMContext):
+    """Foydalanuvchi kiritgan oraliqni parse qilish"""
+    user_id = message.from_user.id
+    lang = await user_db.get_language(user_id) or "uz"
+    data = await state.get_data()
+    
+    topic = data.get('selected_topic')
+    section = data.get('selected_section')
+    text = message.text.strip()
+    
+    try:
+        # "1-10" format
+        if '-' in text:
+            parts = text.split('-')
+            start = int(parts[0])
+            end = int(parts[1])
+            question_numbers = list(range(start, end + 1))
+        # "3,4" format
+        elif ',' in text:
+            question_numbers = [int(x.strip()) for x in text.split(',')]
+        # "50" format
+        else:
+            question_numbers = [int(text)]
+        
+        # So'zlarni olish
+        user_data = dict_handler.load_user_data(user_id)
+        topic_key = f"Topik-{topic.replace('-topik', '')}"
+        
+        selected_words = []
+        if topic_key in user_data and section in user_data[topic_key]:
+            for chapter_key, chapter_data in user_data[topic_key][section].items():
+                chapter_num = int(chapter_key.replace("-savol so'zlari", ""))
+                
+                if chapter_num in question_numbers:
+                    for korean, uzbek in chapter_data.items():
+                        selected_words.append({
+                            'korean': korean,
+                            'uzbek': uzbek,
+                            'topic': topic,
+                            'section': section,
+                            'chapter': f"{chapter_num}-savol"
+                        })
+        
+        if not selected_words:
+            await message.answer("❌ Bu oraliqda so'zlar topilmadi!")
+            return
+        
+        # Yo'nalish tanlash
+        keyboard = InlineKeyboardMarkup(inline_keyboard=[
+            [InlineKeyboardButton(text="🇺🇿 Uz → 🇰🇷 Ko", callback_data="game_dir_custom_uz_ko")],
+            [InlineKeyboardButton(text="🇰🇷 Ko → 🇺🇿 Uz", callback_data="game_dir_custom_ko_uz")]
+        ])
+        
+        await state.update_data(selected_words=selected_words, current_word_index=0)
+        
+        await message.answer(
+            f"✅ Topildi: {len(selected_words)} ta so'z\n"
+            f"🎯 Oraliq: {text}\n\n"
+            f"Tarjima yo'nalishini tanlang:",
+            reply_markup=keyboard
+        )
+        
+    except ValueError:
+        await message.answer(
+            "❌ Noto'g'ri format!\n\n"
+            "To'g'ri format:\n"
+            "• 1-10\n"
+            "• 3,4\n"
+            "• 50"
+        )
 
 # ============================================
 # YULDUZLI SO'ZLAR REJIMI
@@ -898,6 +1021,194 @@ async def game_star_direction_selected(callback: CallbackQuery, state: FSMContex
         parse_mode="HTML"
     )
     await callback.answer()
+
+# $$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$4'
+
+@router.callback_query(F.data == "game_mode_star")
+async def game_star_mode(callback: CallbackQuery, state: FSMContext):
+    user_id = callback.from_user.id
+    lang = await user_db.get_language(user_id) or "uz"
+    
+    keyboard = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="🇺🇿 Uz → 🇰🇷 Ko", callback_data="game_dir_star_uz_ko")],
+        [InlineKeyboardButton(text="🇰🇷 Ko → 🇺🇿 Uz", callback_data="game_dir_star_ko_uz")],
+        [InlineKeyboardButton(text="◀️ Orqaga", callback_data="start_game")]
+    ])
+    
+    await callback.message.edit_text(
+        "⭐ <b>Yulduzli so'zlar</b>\n\nTarjima yo'nalishini tanlang:",
+        reply_markup=keyboard,
+        parse_mode="HTML"
+    )
+    await callback.answer()
+
+
+@router.callback_query(F.data.startswith("game_dir_star_"))
+async def game_star_direction_selected(callback: CallbackQuery, state: FSMContext):
+    direction = callback.data.replace("game_dir_star_", "")
+    user_id = callback.from_user.id
+    lang = await user_db.get_language(user_id) or "uz"
+    
+    word = dict_handler.get_random_star_word(user_id)
+    
+    if not word:
+        await callback.answer("❌ Yulduzli so'zlar topilmadi!", show_alert=True)
+        return
+    
+    await state.update_data(
+        mode='star',
+        direction=direction,
+        current_word=word,
+        start_time=datetime.now().timestamp(),
+        question_count=1
+    )
+    await state.set_state(GameModeState.playing)
+    
+    if direction == "uz_ko":
+        question_text = word['uzbek']
+        answer_lang = "Koreys"
+    else:
+        question_text = word['korean']
+        answer_lang = "O'zbek"
+    
+    await callback.message.edit_text(
+        f"⭐ <b>Yulduzli so'z #1:</b>\n>>> <i>{question_text}</i>\n\n"
+        f"📍 {word['topic']} › {word['section']} › {word['chapter']}\n"
+        f"📝 {answer_lang} tilida yozing:",
+        reply_markup=get_game_reply_keyboard(lang),
+        parse_mode="HTML"
+    )
+    await callback.answer()
+
+@router.callback_query(F.data == "game_mode_unknown")
+async def game_unknown_mode(callback: CallbackQuery, state: FSMContext):
+    user_id = callback.from_user.id
+    lang = await user_db.get_language(user_id) or "uz"
+    
+    keyboard = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="🇺🇿 Uz → 🇰🇷 Ko", callback_data="game_dir_unknown_uz_ko")],
+        [InlineKeyboardButton(text="🇰🇷 Ko → 🇺🇿 Uz", callback_data="game_dir_unknown_ko_uz")],
+        [InlineKeyboardButton(text="◀️ Orqaga", callback_data="start_game")]
+    ])
+    
+    await callback.message.edit_text(
+        "❌ <b>Bilmaydigan so'zlar</b>\n\nTarjima yo'nalishini tanlang:",
+        reply_markup=keyboard,
+        parse_mode="HTML"
+    )
+    await callback.answer()
+
+
+@router.callback_query(F.data.startswith("game_dir_unknown_"))
+async def game_unknown_direction_selected(callback: CallbackQuery, state: FSMContext):
+    direction = callback.data.replace("game_dir_unknown_", "")
+    user_id = callback.from_user.id
+    lang = await user_db.get_language(user_id) or "uz"
+    
+    word = dict_handler.get_random_unknown_word(user_id)
+    
+    if not word:
+        await callback.answer("❌ Bilmaydigan so'zlar topilmadi!", show_alert=True)
+        return
+    
+    await state.update_data(
+        mode='unknown',
+        direction=direction,
+        current_word=word,
+        start_time=datetime.now().timestamp(),
+        question_count=1
+    )
+    await state.set_state(GameModeState.playing)
+    
+    if direction == "uz_ko":
+        question_text = word['uzbek']
+        answer_lang = "Koreys"
+    else:
+        question_text = word['korean']
+        answer_lang = "O'zbek"
+    
+    await callback.message.edit_text(
+        f"❌ <b>Bilmaydigan so'z #1:</b>\n>>> <i>{question_text}</i>\n\n"
+        f"📍 {word['topic']} › {word['section']} › {word['chapter']}\n"
+        f"📝 {answer_lang} tilida yozing:",
+        reply_markup=get_game_reply_keyboard(lang),
+        parse_mode="HTML"
+    )
+    await callback.answer()
+
+@router.message(GameModeState.playing, F.text == "❌ Bilmayman")
+async def mark_word_unknown_game(message: Message, state: FSMContext):
+    """O'yinda so'zni bilmaydigan deb belgilash"""
+    user_id = message.from_user.id
+    lang = await user_db.get_language(user_id) or "uz"
+    data = await state.get_data()
+    
+    word = data.get('current_word')
+    if not word:
+        return
+    
+    # So'zni ** bilan belgilash
+    dict_handler.mark_as_unknown(
+        user_id, 
+        word['korean'], 
+        word['uzbek'],
+        word.get('topic', ''),
+        word.get('section', ''),
+        word.get('chapter', '')
+    )
+    
+    # Statistika (noto'g'ri)
+    start_time = data.get('start_time', datetime.now().timestamp())
+    time_spent = int(datetime.now().timestamp() - start_time)
+    await user_db.update_statistics(user_id, False, time_spent)
+    
+    feedback = "❌ <b>Bilmaydigan so'zlar ro'yxatiga qo'shildi!</b>"
+    
+    # Keyingi so'zni olish
+    mode = data.get('mode', 'general')
+    
+    if mode == 'star':
+        next_word = dict_handler.get_random_star_word(user_id)
+    elif mode == 'unknown':
+        next_word = dict_handler.get_random_unknown_word(user_id)
+    elif mode == 'custom' and 'selected_words' in data:
+        current_index = data.get('current_word_index', 0)
+        selected_words = data.get('selected_words', [])
+        
+        if current_index + 1 < len(selected_words):
+            next_word = selected_words[current_index + 1]
+            await state.update_data(current_word_index=current_index + 1)
+        else:
+            await message.answer(f"{feedback}\n\n🏁 O'yin tugadi!")
+            await state.clear()
+            return
+    else:
+        next_word = dict_handler.get_random_word(user_id, 
+                                                 topic=data.get('topic'), 
+                                                 section=data.get('section'))
+    
+    if not next_word:
+        await message.answer(f"{feedback}\n\n🏁 O'yin tugadi!")
+        await state.clear()
+        return
+    
+    q_count = data.get('question_count', 1) + 1
+    await state.update_data(current_word=next_word, start_time=datetime.now().timestamp(), question_count=q_count)
+    
+    direction = data.get('direction', 'uz_ko')
+    if direction == "uz_ko":
+        question_text = next_word['uzbek']
+        answer_lang = "Koreys"
+    else:
+        question_text = next_word['korean']
+        answer_lang = "O'zbek"
+    
+    next_question = f"🎮 <b>Savol #{q_count}:</b>\n>>> <i>{question_text}</i>\n\n" \
+                   f"📍 {next_word.get('topic', '...')} › {next_word.get('section', '...')} › {next_word.get('chapter', '...')}\n" \
+                   f"📝 {answer_lang} tilida yozing:"
+    
+    await message.answer(f"{feedback}\n\n━━━━━━━━━━━━━━\n\n{next_question}", 
+                         reply_markup=get_game_reply_keyboard(lang), parse_mode="HTML")
 
 
 # ============================================
@@ -984,112 +1295,106 @@ async def game_select_topic(callback: CallbackQuery, state: FSMContext):
 
 @router.callback_query(F.data.startswith("game_section_"))
 async def game_select_section(callback: CallbackQuery, state: FSMContext):
+    """Bo'lim tanlandi - endi oraliq so'raymiz"""
     user_id = callback.from_user.id
     lang = await user_db.get_language(user_id) or "uz"
     
     # Callbackni ajratib olish
     parts = callback.data.replace("game_section_", "").split("_", 1)
-    callback_topic = parts[0]  # Masalan: '35-topik'
+    topic = parts[0]
     section = parts[1]
     
-    # Topic nomini Topik-XX formatiga o'zgartirish
-    # '35-topik' → 'Topik-35'
-    topic_num = callback_topic.replace('-topik', '')
-    actual_topic = f"Topik-{topic_num}"
+    # State ga saqlash
+    await state.update_data(selected_topic=topic, selected_section=section)
+    await state.set_state(GameModeState.waiting_for_range)
     
-    # Topik va sectionni saqlash (callback formatida)
-    await state.update_data(selected_topic=callback_topic, selected_section=section)
-    
-    # Bu sectiondagi barcha so'zlarni chapter raqami bilan olish
-    user_data = dict_handler.load_user_data(user_id)
-    
-    # DEBUG
-    print(f"\n=== DEBUG game_select_section ===")
-    print(f"User ID: {user_id}")
-    print(f"Callback topic: '{callback_topic}'")
-    print(f"Actual topic (converted): '{actual_topic}'")
-    print(f"Section: {section}")
-    print(f"User data keys: {list(user_data.keys()) if user_data else 'EMPTY'}")
-    
-    # Qaysi savol raqamlari mavjud ekanligini aniqlash
-    available_chapters = []
-    
-    if user_data and actual_topic in user_data:
-        print(f"Topic '{actual_topic}' mavjud")
-        print(f"Topic sections: {list(user_data[actual_topic].keys())}")
-        
-        if section in user_data[actual_topic]:
-            print(f"Section '{section}' mavjud")
-            for chapter_key, chapter_data in user_data[actual_topic][section].items():
-                words_count = len(chapter_data)
-                print(f"  Chapter: {chapter_key}, Words: {words_count}")
-                
-                # Faqat so'zlari bor chapter larni olish
-                if words_count > 0:
-                    # "15-savol so'zlari" → 15
-                    chapter_num = int(chapter_key.replace("-savol so'zlari", ""))
-                    available_chapters.append(chapter_num)
-        else:
-            print(f"Section '{section}' MAVJUD EMAS!")
-    else:
-        print(f"Topic '{actual_topic}' MAVJUD EMAS yoki user_data bo'sh!")
-    
-    available_chapters.sort()
-    print(f"Available chapters: {available_chapters}")
-    print(f"=== END DEBUG ===\n")
-    
-    # Agar so'z topilmasa
-    if not available_chapters:
-        await callback.message.edit_text(
-            f"❌ <b>{callback_topic} › {section}</b> bo'limida so'zlar topilmadi!\n\n"
-            f"Iltimos avval /game orqali so'z qo'shing.",
-            parse_mode="HTML"
-        )
-        await callback.answer()
-        return
-    
-    # Savol raqamlari bo'yicha guruhlar yaratish
-    # Masalan: 1~10, 11~20, 21~30, ...
-    min_chapter = min(available_chapters)
-    max_chapter = max(available_chapters)
-    
-    ranges = []
-    for start in range(1, 51, 10):  # 1, 11, 21, 31, 41
-        end = start + 9  # 10, 20, 30, 40, 50
-        
-        # Bu oraliqda hech bo'lmaganda bitta savol bormi?
-        has_words = any(start <= ch <= end for ch in available_chapters)
-        
-        if has_words:
-            ranges.append((start, end))
-    
-    # Tugmalarni yaratish
-    keyboard = []
-    for i in range(0, len(ranges), 2):
-        row = []
-        for j in range(2):
-            if i + j < len(ranges):
-                start, end = ranges[i + j]
-                row.append(InlineKeyboardButton(
-                    text=f"{start}~{end}-savol",
-                    callback_data=f"game_range_{start}_{end}"
-                ))
-        keyboard.append(row)
-    
-    # Orqaga tugmasi
-    keyboard.append([InlineKeyboardButton(
-        text="◀️ Orqaga",
-        callback_data=f"game_topic_{callback_topic}"
-    )])
-    
+    # Oraliq so'rash
     await callback.message.edit_text(
-        f"📚 <b>{callback_topic} › {section.title()}</b>\n\n"
-        f"📊 Savol raqamlari: {min_chapter}~{max_chapter}\n\n"
-        f"🎯 Qaysi savol oralig'ida o'ynashni xohlaysiz?",
-        reply_markup=InlineKeyboardMarkup(inline_keyboard=keyboard),
+        f"📚 <b>{topic} › {section.title()}</b>\n\n"
+        f"🎯 <b>Savol oralig'ini kiriting:</b>\n\n"
+        f"<b>Masallar:</b>\n"
+        f"• <code>1-10</code> → 1 dan 10 gacha\n"
+        f"• <code>3,4</code> → 3 va 4-savollar\n"
+        f"• <code>50</code> → faqat 50-savol",
         parse_mode="HTML"
     )
     await callback.answer()
+
+# ============================================
+# ORALIQ INPUT HANDLER (TEXT XABAR)
+# ============================================
+
+@router.message(GameModeState.waiting_for_range)
+async def handle_range_input(message: Message, state: FSMContext):
+    """Foydalanuvchi kiritgan oraliqni parse qilish"""
+    user_id = message.from_user.id
+    lang = await user_db.get_language(user_id) or "uz"
+    data = await state.get_data()
+    
+    topic = data.get('selected_topic')
+    section = data.get('selected_section')
+    text = message.text.strip()
+    
+    try:
+        # "1-10" format
+        if '-' in text:
+            parts = text.split('-')
+            start = int(parts[0])
+            end = int(parts[1])
+            question_numbers = list(range(start, end + 1))
+        # "3,4" format
+        elif ',' in text:
+            question_numbers = [int(x.strip()) for x in text.split(',')]
+        # "50" format
+        else:
+            question_numbers = [int(text)]
+        
+        # So'zlarni olish
+        user_data = dict_handler.load_user_data(user_id)
+        topic_key = f"Topik-{topic.replace('-topik', '')}"
+        
+        selected_words = []
+        if topic_key in user_data and section in user_data[topic_key]:
+            for chapter_key, chapter_data in user_data[topic_key][section].items():
+                chapter_num = int(chapter_key.replace("-savol so'zlari", ""))
+                
+                if chapter_num in question_numbers:
+                    for korean, uzbek in chapter_data.items():
+                        selected_words.append({
+                            'korean': korean,
+                            'uzbek': uzbek,
+                            'topic': topic,
+                            'section': section,
+                            'chapter': f"{chapter_num}-savol"
+                        })
+        
+        if not selected_words:
+            await message.answer("❌ Bu oraliqda so'zlar topilmadi!")
+            return
+        
+        # Yo'nalish tanlash
+        keyboard = InlineKeyboardMarkup(inline_keyboard=[
+            [InlineKeyboardButton(text="🇺🇿 Uz → 🇰🇷 Ko", callback_data="game_dir_custom_uz_ko")],
+            [InlineKeyboardButton(text="🇰🇷 Ko → 🇺🇿 Uz", callback_data="game_dir_custom_ko_uz")]
+        ])
+        
+        await state.update_data(selected_words=selected_words, current_word_index=0)
+        
+        await message.answer(
+            f"✅ Topildi: {len(selected_words)} ta so'z\n"
+            f"🎯 Oraliq: {text}\n\n"
+            f"Tarjima yo'nalishini tanlang:",
+            reply_markup=keyboard
+        )
+        
+    except ValueError:
+        await message.answer(
+            "❌ Noto'g'ri format!\n\n"
+            "To'g'ri format:\n"
+            "• 1-10\n"
+            "• 3,4\n"
+            "• 50"
+        )
 
 # Savol oralig'i tanlangandan keyin yo'nalish tanlash
 @router.callback_query(F.data.startswith("game_range_"))
@@ -1130,57 +1435,72 @@ async def game_custom_direction_selected(callback: CallbackQuery, state: FSMCont
     
     direction = callback.data.replace("game_dir_custom_", "")  # uz_ko yoki ko_uz
     data = await state.get_data()
-    callback_topic = data.get('selected_topic')  # Masalan: '35-topik'
+    
+    callback_topic = data.get('selected_topic')
     section = data.get('selected_section')
-    range_start = data.get('range_start', 1)  # Savol raqami: 1, 11, 21, ...
-    range_end = data.get('range_end', 10)     # Savol raqami: 10, 20, 30, ...
     
-    # Topic nomini Topik-XX formatiga o'zgartirish
-    # '35-topik' → 'Topik-35'
-    topic_num = callback_topic.replace('-topik', '') if callback_topic else ''
-    actual_topic = f"Topik-{topic_num}" if topic_num else callback_topic
-    
-    # Bu sectiondagi tanlangan savol raqamlaridagi so'zlarni olish
-    user_data = dict_handler.load_user_data(user_id)
-    all_words = []
-    
-    if actual_topic in user_data and section in user_data[actual_topic]:
-        # Faqat tanlangan oralig'dagi chapter lardan so'zlarni olish
-        for chapter_key, chapter_data in user_data[actual_topic][section].items():
-            # "15-savol so'zlari" → 15
-            chapter_num = int(chapter_key.replace("-savol so'zlari", ""))
-            
-            # Faqat tanlangan oralig'dagi chapterlarni olish
-            if range_start <= chapter_num <= range_end:
-                for korean, uzbek in chapter_data.items():
-                    all_words.append({
-                        'korean': korean,
-                        'uzbek': uzbek,
-                        'topic': callback_topic,
-                        'section': section,
-                        'chapter': f"{chapter_num}-savol"
-                    })
+    # Agar selected_words mavjud bo'lsa (text input orqali)
+    if 'selected_words' in data:
+        all_words = data.get('selected_words', [])
+        range_start = None
+        range_end = None
+    else:
+        # Eski usul (tugmalar orqali)
+        range_start = data.get('range_start', 1)  # Savol raqami: 1, 11, 21, ...
+        range_end = data.get('range_end', 10)     # Savol raqami: 10, 20, 30, ...
+        
+        # Topic nomini Topik-XX formatiga o'zgartirish
+        # '35-topik' → 'Topik-35'
+        topic_num = callback_topic.replace('-topik', '') if callback_topic else ''
+        actual_topic = f"Topik-{topic_num}" if topic_num else callback_topic
+        
+        # Bu sectiondagi tanlangan savol raqamlaridagi so'zlarni olish
+        user_data = dict_handler.load_user_data(user_id)
+        all_words = []
+        
+        if actual_topic in user_data and section in user_data[actual_topic]:
+            # Faqat tanlangan oralig'dagi chapter lardan so'zlarni olish
+            for chapter_key, chapter_data in user_data[actual_topic][section].items():
+                # "15-savol so'zlari" → 15
+                chapter_num = int(chapter_key.replace("-savol so'zlari", ""))
+                
+                # Faqat tanlangan oralig'dagi chapterlarni olish
+                if range_start <= chapter_num <= range_end:
+                    for korean, uzbek in chapter_data.items():
+                        all_words.append({
+                            'korean': korean,
+                            'uzbek': uzbek,
+                            'topic': callback_topic,
+                            'section': section,
+                            'chapter': f"{chapter_num}-savol"
+                        })
     
     if not all_words:
-        await callback.answer(f"❌ {range_start}~{range_end} savollarda so'zlar topilmadi!", show_alert=True)
+        await callback.answer("❌ So'zlar topilmadi!", show_alert=True)
         return
     
     # Birinchi so'zni olish
     word = all_words[0]
     
-    await state.update_data(
-        mode='custom',
-        topic=callback_topic,
-        section=section,
-        range_start=range_start,
-        range_end=range_end,
-        selected_words=all_words,  # Barcha tanlangan so'zlar
-        current_word_index=0,  # Hozirgi so'z indexi
-        current_word=word,
-        start_time=datetime.now().timestamp(),
-        question_count=1,
-        direction=direction
-    )
+    # State ga saqlash
+    state_data = {
+        'mode': 'custom',
+        'topic': callback_topic,
+        'section': section,
+        'selected_words': all_words,
+        'current_word_index': 0,
+        'current_word': word,
+        'start_time': datetime.now().timestamp(),
+        'question_count': 1,
+        'direction': direction
+    }
+    
+    # Faqat range mavjud bo'lsa qo'shamiz
+    if range_start is not None:
+        state_data['range_start'] = range_start
+        state_data['range_end'] = range_end
+    
+    await state.update_data(**state_data)
     await state.set_state(GameModeState.playing)
     
     # Direction ga qarab savol yaratish
@@ -1191,9 +1511,12 @@ async def game_custom_direction_selected(callback: CallbackQuery, state: FSMCont
         question_text = word['korean']
         answer_lang = "O'zbek"
     
+    # Range info
+    range_info = f"🎯 Oraliq: {range_start}~{range_end}\n" if range_start else ""
+    
     await callback.message.edit_text(
         get_text(lang, "game_starting_custom", topic=callback_topic, section=section) + "\n" +
-        f"🎯 Savol oralig'i: {range_start}~{range_end}\n"
+        range_info +
         f"📊 Jami: {len(all_words)} so'z\n\n" +
         f"🎮 <b>Savol #1:</b>\n>>> <i>{question_text}</i>\n\n"
         f"📍 {callback_topic} › {section} › {word.get('chapter', '---')}\n"
@@ -1674,11 +1997,13 @@ async def send_auto_words():
                         if mode == 'auto_star':
                             word = dict_handler.get_random_star_word(user_id)  # YANGI!
                         else:
-                            word = dict_handler.get_random_word(
-                                user_id,
-                                topic=data.get('topic'),
-                                section=data.get('section')
-                            )
+                            # Selected words dan olish
+                            data_check = await state.get_data()
+                            if 'selected_words' in data_check:
+                                selected_words = data_check['selected_words']
+                                word = selected_words[0] if selected_words else None
+                            else:
+                                word = dict_handler.get_random_word(user_id, topic=topic, section=section)
                         
                         if word:
                             await state.update_data(
@@ -2174,7 +2499,8 @@ async def exam_mode_selected(callback: CallbackQuery, state: FSMContext):
             filepath = create_exam_word_bilingual(words, location=location)
             mode_text = "🇰🇷 한국어 + 🇺🇿 O'zbekcha"
         else:
-            filepath = create_exam_word(words, location=location, mode=mode)
+            filename_prefix = f"{'ko-uz' if mode == 'kr_to_uz' else 'uz-ko'}_{topic.replace('/', '-')}_{section}"
+            filepath = create_exam_word(words, location=location, mode=mode, filename_prefix=filename_prefix)
             mode_text = "🇰🇷 ➔ 🇺🇿" if mode == "kr_to_uz" else "🇺🇿 ➔ 🇰🇷"
         
         file = FSInputFile(filepath)
@@ -2334,7 +2660,8 @@ async def exam_random_mode_selected(callback: CallbackQuery, state: FSMContext):
             filepath = create_exam_word_bilingual(words, location="Random")
             mode_text = "🇰🇷 한국어 + 🇺🇿 O'zbekcha"
         else:
-            filepath = create_exam_word(words, location="Random", mode=mode)
+            filename_prefix = f"{'ko-uz' if mode == 'kr_to_uz' else 'uz-ko'}_{topic.replace('/', '-')}_{section}"
+            filepath = create_exam_word(words, location=location, mode=mode, filename_prefix=filename_prefix)
             mode_text = "🇰🇷 ➔ 🇺🇿" if mode == "kr_to_uz" else "🇺🇿 ➔ 🇰🇷"
         
         file = FSInputFile(filepath)
@@ -2397,11 +2724,8 @@ async def download_all_words(callback: CallbackQuery, state: FSMContext):
             all_words = [(w['korean'], w['uzbek']) for w in all_words_data]
             
             # Word fayl yaratish
-            filepath = create_exam_word(
-                all_words, 
-                location="📚 Barcha so'zlar", 
-                mode="kr_to_uz"
-            )
+            filename_prefix = f"{'ko-uz' if mode == 'kr_to_uz' else 'uz-ko'}_{topic.replace('/', '-')}_{section}"
+            filepath = create_exam_word(words, location=location, mode=mode, filename_prefix=filename_prefix)
             
             # Faylni yuborish
             file = FSInputFile(filepath)
@@ -2557,7 +2881,8 @@ async def send_auto_exam():
             await bot.send_message(user_id, msg)
             
             for idx, group in enumerate(groups, 1):
-                filepath = create_exam_word(group, location=None, mode="kr_to_uz")
+                filename_prefix = f"{'ko-uz' if mode == 'kr_to_uz' else 'uz-ko'}_{topic.replace('/', '-')}_{section}"
+                filepath = create_exam_word(words, location=location, mode=mode, filename_prefix=filename_prefix)
                 file = FSInputFile(filepath)
                 await bot.send_document(
                     user_id,
@@ -2760,7 +3085,8 @@ async def exam_star_direction_handler(callback: CallbackQuery):
             # BITTA TILDA (Savol/Javob formatida)
             mode = "kr_to_uz" if direction == "ko_uz" else "uz_to_kr"
             from utils.exam_generator import create_exam_word
-            filepath = create_exam_word(words_list, location=location, mode=mode)
+            filename_prefix = f"{'ko-uz' if mode == 'kr_to_uz' else 'uz-ko'}_{topic.replace('/', '-')}_{section}"
+            filepath = create_exam_word(words, location=location, mode=mode, filename_prefix=filename_prefix)
             mode_text = "🇰🇷 Ko → 🇺🇿 Uz" if mode == "kr_to_uz" else "🇺🇿 Uz → 🇰🇷 Ko"
         
         # Faylni yuborish
@@ -2969,7 +3295,8 @@ async def exam_star_direction_handler(callback: CallbackQuery):
         else:
             # Mode aniqlash
             mode = "kr_to_uz" if direction == "ko_uz" else "uz_to_kr"
-            filepath = create_exam_word(words_list, location=location, mode=mode)
+            filename_prefix = f"{'ko-uz' if mode == 'kr_to_uz' else 'uz-ko'}_{topic.replace('/', '-')}_{section}"
+            filepath = create_exam_word(words, location=location, mode=mode, filename_prefix=filename_prefix)
             mode_label = "🇰🇷 Ko → 🇺🇿 Uz" if direction == "ko_uz" else "🇺🇿 Uz → 🇰🇷 Ko"
         
         # Faylni yuborish
@@ -3174,7 +3501,8 @@ async def exam_random_mode_selected(callback: CallbackQuery, state: FSMContext):
             filepath = create_exam_word_bilingual(words, location="Random")
             mode_text = "🇰🇷 한국어 + 🇺🇿 O'zbekcha"
         else:
-            filepath = create_exam_word(words, location="Random", mode=mode)
+            filename_prefix = f"{'ko-uz' if mode == 'kr_to_uz' else 'uz-ko'}_{topic.replace('/', '-')}_{section}"
+            filepath = create_exam_word(words, location=location, mode=mode, filename_prefix=filename_prefix)
             mode_text = "🇰🇷 ➔ 🇺🇿" if mode == "kr_to_uz" else "🇺🇿 ➔ 🇰🇷"
         
         file = FSInputFile(filepath)
@@ -3249,7 +3577,8 @@ async def send_auto_exam():
             # Har bir guruhni fayl sifatida yuborish
             for idx, group in enumerate(groups, 1):
                 # Default mode: kr_to_uz
-                filepath = create_exam_word(group, location=None, mode="kr_to_uz")
+                filename_prefix = f"{'ko-uz' if mode == 'kr_to_uz' else 'uz-ko'}_{topic.replace('/', '-')}_{section}"
+                filepath = create_exam_word(words, location=location, mode=mode, filename_prefix=filename_prefix)
                 
                 file = FSInputFile(filepath)
                 await bot.send_document(

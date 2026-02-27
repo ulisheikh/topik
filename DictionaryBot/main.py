@@ -937,6 +937,10 @@ def change_password_handlers(message):
 # ============================================
 # TEXT MESSAGE HANDLER (Context asosida)
 # ============================================
+# ============================================
+# TO'LIQ text_handler - YANGI s. VA = BILAN
+# main.py da 942-qatordan boshlab ALMASHTIRING
+# ============================================
 
 @bot.message_handler(func=lambda m: True, content_types=['text'])
 def text_handler(message):
@@ -945,20 +949,18 @@ def text_handler(message):
     text = message.text.strip()
     
     # ============================================
-    # SO'Z QIDIRISH - s.so'z yoki S.so'z
+    # SO'Z QIDIRISH - oddiy matn yoki s.matn
     # ============================================
-    if text.lower().startswith('s.') and len(text) > 2:
-        search_word = text[2:].strip()
-        
-        if not search_word:
-            bot.send_message(uid, "❌ So'z kiriting! Masalan: s.사과 yoki s.olma")
-            return
+    # Agar = yo'q va / bilan boshlanmasa
+    if '=' not in text and not text.startswith('/') and len(text) >= 2:
+        # s. ni olib tashlash (agar bor bo'lsa)
+        search_word = text[2:].strip() if text.lower().startswith('s.') else text.strip()
         
         # Ma'lumotlarni yuklash
         data = load_user_data(uid)
         results = []
         
-        # Barcha topiklar, bo'limlar va savollarni qidirish
+        # Barcha joylardan qidirish
         for topic_key, topic_data in data.items():
             if not topic_key.startswith("Topik-"):
                 continue
@@ -966,229 +968,116 @@ def text_handler(message):
             topic_num = topic_key.replace("Topik-", "")
             
             for section_name, questions in topic_data.items():
-                # Section nomini aniqlash
-                section_display = {
-                    'reading': 'Reading',
-                    'writing': 'Writing',
-                    'listening': 'Listening'
-                }
-                section_text = section_display.get(section_name, section_name)
-                
                 for question_key, words in questions.items():
                     question_num = question_key.replace("-savol so'zlari", "")
                     
                     # So'zlarni qidirish
                     for korean, uzbek in words.items():
-                        if search_word in korean or search_word in uzbek:
+                        if search_word.lower() in korean.lower() or search_word.lower() in uzbek.lower():
                             results.append({
-                                'topic': topic_num,
-                                'section': section_text,
-                                'question': question_num,
                                 'korean': korean,
-                                'uzbek': uzbek
+                                'uzbek': uzbek,
+                                'location': f"{topic_num}>{question_num}"
                             })
         
         # Natijalarni ko'rsatish
-        if not results:
-            bot.send_message(uid, f"❌ So'z topilmadi: <b>{search_word}</b>", parse_mode='HTML')
-            return
-        
-        msg = f"🔍 <b>QIDIRUV NATIJALARI</b>\n"
-        msg += f"So'z: <b>{search_word}</b>\n"
-        msg += f"Topildi: <b>{len(results)} ta</b>\n"
-        msg += "━━━━━━━━━━━━━━━━━\n\n"
-        
-        for idx, result in enumerate(results, 1):
-            msg += f"{idx}. 📍 <b>{result['topic']}-topik > {result['section']} > {result['question']}-savol</b>\n"
-            msg += f"   {result['korean']} → {result['uzbek']}\n\n"
-        
-        bot.send_message(uid, msg, parse_mode='HTML')
-        return
-    # ============================================
-    # SO'Z TAHRIRLASH - e.eski.yangi yoki E.eski.yangi
-    # HAR YERDAN ISHLAYDI + RAQAM BILAN HAM ISHLAYDI
-    # ============================================
-    if text.lower().startswith('e.') and len(text) > 2:
-        parts = text[2:].split('.')
-        
-        if len(parts) != 2:
-            bot.send_message(uid, "❌ Noto'g'ri format!\n\nTo'g'ri: e.eski.yangi\n\nMasalan:\ne.안녕.안녕하세요\nE.salom.assalomu alaykum\nE.50.55", parse_mode='HTML')
-            return
-        
-        old_word = parts[0].strip()
-        new_word_text = parts[1].strip()
-        
-        if not old_word or not new_word_text:
-            bot.send_message(uid, "❌ So'zlar bo'sh bo'lmasligi kerak!")
-            return
-        
-        # Ma'lumotlarni yuklash
-        data = load_user_data(uid)
-        
-        if not data:
-            bot.send_message(uid, "❌ Lug'atingiz bo'sh!")
-            return
-        
-        # Barcha topiklar, bo'limlar va savollardan qidirish
-        found_results = []
-        
-        for topic_key, topic_data in data.items():
-            if not topic_key.startswith("Topik-"):
-                continue
+        if results:
+            msg = f"🔍 <b>{search_word}</b> ({len(results)} ta)\n\n"
             
-            topic_num = topic_key.replace("Topik-", "")
+            for idx, r in enumerate(results[:20], 1):
+                msg += f"{idx}. <b>{r['korean']}</b> → {r['uzbek']}\n"
+                msg += f"   📍 {r['location']}\n"
             
-            for section_name, questions in topic_data.items():
-                section_map_reverse = {
-                    'reading': 'r',
-                    'writing': 'w',
-                    'listening': 'l'
-                }
-                section_type = section_map_reverse.get(section_name)
-                
-                if not section_type:
-                    continue
-                
-                for question_key, words in questions.items():
-                    question_num = question_key.replace("-savol so'zlari", "")
-                    
-                    if not words:
-                        continue
-                    
-                    words_list = list(words.items())
-                    
-                    # RAQAM bo'lsa - index bo'yicha topish
-                    if old_word.isdigit():
-                        index = int(old_word) - 1
-                        if 0 <= index < len(words_list):
-                            kr, uz = words_list[index]
-                            found_results.append({
-                                'topic': topic_num,
-                                'section': section_type,
-                                'section_name': section_name,
-                                'question': question_num,
-                                'question_key': question_key,
-                                'old_kr': kr,
-                                'old_uz': uz,
-                                'index': old_word
-                            })
-                    else:
-                        # Koreys yoki O'zbek so'z sifatida qidirish
-                        # SUBSTRING qidirish (s. kabi)
-                        for kr, uz in words.items():
-                            if old_word in kr or old_word in uz:
-                                found_results.append({
-                                    'topic': topic_num,
-                                    'section': section_type,
-                                    'section_name': section_name,
-                                    'question': question_num,
-                                    'question_key': question_key,
-                                    'old_kr': kr,
-                                    'old_uz': uz
-                                })
-        
-        if not found_results:
-            bot.send_message(uid, f"❌ So'z topilmadi: <b>{old_word}</b>", parse_mode='HTML')
-            return
-        
-        if len(found_results) > 1:
-            # Ko'p natija - foydalanuvchiga tanlash imkonini berish
-            msg = f"🔍 <b>TOPILDI: {len(found_results)} ta</b>\n\n"
-            msg += f"Eski so'z: <b>{old_word}</b>\n"
-            msg += "━━━━━━━━━━━━━━━━━\n\n"
-            
-            for idx, result in enumerate(found_results[:10], 1):  # Faqat 10 tasini ko'rsatish
-                msg += f"{idx}. 📍 {result['topic']}-topik > "
-                section_display = {'r': 'Reading', 'w': 'Writing', 'l': 'Listening'}
-                msg += f"{section_display[result['section']]} > {result['question']}-savol\n"
-                msg += f"   {result['old_kr']} → {result['old_uz']}\n\n"
-            
-            if len(found_results) > 10:
-                msg += f"... va yana {len(found_results) - 10} ta\n\n"
-            
-            msg += "❗️ Ko'p natija topildi!\n"
-            msg += "Aniqroq qidirish uchun:\n"
-            msg += "1️⃣ Avval savol ichiga kiring\n"
-            msg += "2️⃣ Keyin e. ishlatib tahrirlang"
+            if len(results) > 20:
+                msg += f"\n... va yana {len(results) - 20} ta"
             
             bot.send_message(uid, msg, parse_mode='HTML')
             return
+        # Agar topilmasa - keyingi bloklarga o'tish
+    
+    # ============================================
+    # SO'Z TAHRIRLASH - salom=안녕 yoki 안녕=salom
+    # ============================================
+    if '=' in text and len(text) > 3:
+        parts = text.split('=', 1)
         
-        # Bitta natija - tahrirlash
-        result = found_results[0]
-        topic_key = f"Topik-{result['topic']}"
-        
-        # Yangi so'zni parse qilish
-        # RAQAM BILAN HAM ISHLASHI UCHUN
-        if new_word_text.isdigit():
-            # Agar yangi so'z raqam bo'lsa - eski tarjimani saqlash
-            new_kr = new_word_text
-            new_uz = result['old_uz']
-        else:
-            # Oddiy parse
-            new_words = parse_multiline_words(new_word_text)
+        if len(parts) == 2:
+            left = parts[0].strip()
+            right = parts[1].strip()
             
-            if not new_words or len(new_words) != 1:
-                # Agar parse ishlamasa - bo'sh joy bilan ajratishga harakat qilish
-                word_parts = new_word_text.split(maxsplit=1)
-                if len(word_parts) == 2:
-                    new_kr = word_parts[0]
-                    new_uz = word_parts[1]
+            if left and right:
+                # Ma'lumotlarni yuklash
+                data = load_user_data(uid)
+                
+                if not data:
+                    bot.send_message(uid, "❌ Lug'atingiz bo'sh!")
+                    return
+                
+                # Qidirish
+                found = []
+                
+                for topic_key, topic_data in data.items():
+                    if not topic_key.startswith("Topik-"):
+                        continue
+                    
+                    for section_name, questions in topic_data.items():
+                        for question_key, words in questions.items():
+                            for kr, uz in words.items():
+                                if left.lower() == kr.lower() or left.lower() == uz.lower():
+                                    found.append({
+                                        'topic_key': topic_key,
+                                        'section': section_name,
+                                        'question': question_key,
+                                        'old_kr': kr,
+                                        'old_uz': uz
+                                    })
+                
+                if not found:
+                    bot.send_message(uid, f"❌ <b>{left}</b> topilmadi", parse_mode='HTML')
+                    return
+                
+                if len(found) > 1:
+                    msg = f"❌ Ko'p natija: {len(found)} ta\n\n"
+                    msg += "Aniqroq kiriting yoki savol ichida tahrirlang"
+                    bot.send_message(uid, msg)
+                    return
+                
+                # Bitta natija - TAHRIRLASH
+                item = found[0]
+                
+                # Eski so'zni o'chirish
+                del data[item['topic_key']][item['section']][item['question']][item['old_kr']]
+                
+                # Yangi so'zni aniqlash
+                if is_korean(left):
+                    new_kr = left
+                    new_uz = right
+                elif is_korean(right):
+                    new_kr = right
+                    new_uz = left
                 else:
-                    # Faqat bitta so'z - koreyscha deb hisoblash
-                    new_kr = new_word_text
-                    new_uz = result['old_uz']  # Eski tarjimani saqlash
-            else:
-                new_word = new_words[0]
-                new_kr = new_word['korean']
-                new_uz = new_word['uzbek']
-        
-        # Eski so'zni o'chirish VA yangi so'zni shu joyga qo'yish
-        all_words = data[topic_key][result['section_name']][result['question_key']]
-        
-        # Tartibni saqlash uchun yangi dictionary yaratish
-        new_words_dict = {}
-        
-        for kr, uz in all_words.items():
-            if kr == result['old_kr']:
-                # Eski so'z o'rniga yangi so'zni qo'yish
-                new_words_dict[new_kr] = new_uz
-            else:
-                # Qolgan so'zlarni shunchaki ko'chirish
-                new_words_dict[kr] = uz
-        
-        # Yangi dictionary ni saqlash
-        data[topic_key][result['section_name']][result['question_key']] = new_words_dict
-        
-        # Saqlash
-        save_user_data(uid, data)
-        
-        # Xabar
-        section_display = {'r': 'Reading', 'w': 'Writing', 'l': 'Listening'}
-        
-        msg = f"✅ <b>SO'Z TAHRIRLANDI</b>\n\n"
-        msg += f"📍 {result['topic']}-topik > {section_display[result['section']]} > {result['question']}-savol\n\n"
-        msg += f"Eski: <s>{result['old_kr']} → {result['old_uz']}</s>\n"
-        msg += f"Yangi: <b>{new_kr} → {new_uz}</b>\n\n"
-        msg += "━━━━━━━━━━━━━━━━━\n\n"
-        
-        # Yangilangan so'zlarni ko'rsatish
-        msg += "<b>📝 SO'ZLAR:</b>\n"
-        for idx, (kr, uz) in enumerate(new_words_dict.items(), 1):
-            msg += f'{idx}. {kr} → {uz}\n'
-        
-        bot.send_message(uid, msg, parse_mode='HTML')
-        
-        # Context yangilash (agar kerak bo'lsa)
-        user_context[uid] = {
-            'topic': result['topic'],
-            'section': result['section'],
-            'question': result['question']
-        }
-        
-        return
-
-
+                    # Ikkala tomon ham koreys emas
+                    new_kr = right if is_korean(item['old_kr']) else left
+                    new_uz = left if is_korean(item['old_kr']) else right
+                
+                # Yangi so'zni qo'shish
+                data[item['topic_key']][item['section']][item['question']][new_kr] = new_uz
+                
+                # Saqlash
+                save_user_data(uid, data)
+                
+                bot.send_message(
+                    uid,
+                    f"✅ Tahrirlandi!\n\n"
+                    f"<s>{item['old_kr']} → {item['old_uz']}</s>\n"
+                    f"<b>{new_kr} → {new_uz}</b>",
+                    parse_mode='HTML'
+                )
+                return
+    
+    # ============================================
+    # ACTION-GA BOG'LIQ HANDLERLAR
+    # ============================================
     # Context borligini tekshirish
     if uid not in user_context:
         return
@@ -1200,7 +1089,6 @@ def text_handler(message):
     # YANGI TOPIK YARATISH
     # ============================================
     if action == 'create_topic':
-        # Raqam tekshirish
         if not text.isdigit():
             bot.send_message(uid, get_text(uid, 'invalid_topic_number'))
             return
@@ -1208,7 +1096,6 @@ def text_handler(message):
         topic_num = int(text)
         topic_key = f'Topik-{topic_num}'
         
-        # Mavjudligini tekshirish
         data = load_user_data(uid)
         if topic_key in data:
             bot.send_message(uid, get_text(uid, 'topic_exists').format(topic_num))
@@ -1233,31 +1120,25 @@ def text_handler(message):
         for i in range(1, 51):
             data[topic_key]['listening'][f'{i}-savol so\'zlari'] = {}
         
-        # Saqlash
         save_user_data(uid, data)
-        
-        # Xabar
         bot.send_message(uid, get_text(uid, 'topic_created').format(topic_num))
-        
-        # Context tozalash
         del user_context[uid]
     
     # ============================================
-    # TOPIKNI O'CHIRISH - Raqam kiritish
+    # TOPIKNI O'CHIRISH
     # ============================================
     elif action == 'deleting_topic':
         try:
             topic_num = int(text)
             topic_key = f"Topik-{topic_num}"
             
-            # Ma'lumotlarni yuklash
             data = load_user_data(uid)
             
             if topic_key not in data:
                 bot.send_message(uid, f"❌ {topic_num}-topik topilmadi!")
                 return
             
-            # Statistikani hisoblash
+            # Statistika
             stats = {}
             total_words = 0
             
@@ -1268,7 +1149,7 @@ def text_handler(message):
                 stats[section] = section_words
                 total_words += section_words
             
-            # Tasdiqlash xabari
+            # Tasdiqlash
             msg = f"⚠️ <b>TASDIQLASH</b>\n\n"
             msg += f"<b>{topic_num}-topikni</b> o'chirmoqchimisiz?\n\n"
             msg += "📊 <b>Statistika:</b>\n"
@@ -1283,7 +1164,6 @@ def text_handler(message):
             msg += f"\n<b>JAMI: {total_words} ta so'z</b>\n\n"
             msg += "❗ Barcha ma'lumotlar o'chib ketadi!"
             
-            # Inline tugmalar
             markup = types.InlineKeyboardMarkup()
             markup.row(
                 types.InlineKeyboardButton(
@@ -1296,29 +1176,20 @@ def text_handler(message):
                 )
             )
             
-            # Eski xabarni tahrirlash
             message_id = ctx.get('message_id')
             if message_id:
                 try:
-                    bot.edit_message_text(
-                        msg,
-                        uid,
-                        message_id,
-                        parse_mode="HTML",
-                        reply_markup=markup
-                    )
+                    bot.edit_message_text(msg, uid, message_id, parse_mode="HTML", reply_markup=markup)
                 except:
                     bot.send_message(uid, msg, parse_mode="HTML", reply_markup=markup)
             else:
                 bot.send_message(uid, msg, parse_mode="HTML", reply_markup=markup)
             
-            # User xabarini o'chirish
             try:
                 bot.delete_message(uid, message.message_id)
             except:
                 pass
             
-            # State tozalash
             user_context[uid]['action'] = None
             
         except ValueError:
@@ -1340,7 +1211,7 @@ def text_handler(message):
         section_name = section_map[section_type]
         question_key = f'{question_num}-savol so\'zlari'
         
-        # So'zlarni parse qilish (hozirgi funksiya)
+        # So'zlarni parse qilish
         words = parse_multiline_words(text)
         
         if not words:
@@ -1350,7 +1221,7 @@ def text_handler(message):
         # Ma'lumotlarni yuklash
         data = load_user_data(uid)
         
-        # Topik/bo'lim/savol yaratish (agar yo'q bo'lsa)
+        # Yaratish
         if topic_key not in data:
             data[topic_key] = {}
         if section_name not in data[topic_key]:
@@ -1362,18 +1233,12 @@ def text_handler(message):
         for word in words:
             data[topic_key][section_name][question_key][word['korean']] = word['uzbek']
         
-        # Saqlash
         save_user_data(uid, data)
         
-        # Yangilangan so'zlarni olish
+        # Xabar
         all_words = data[topic_key][section_name][question_key]
         
-        # Xabar tayyorlash
-        section_display = {
-            'r': 'Reading',
-            'w': 'Writing',
-            'l': 'Listening'
-        }
+        section_display = {'r': 'Reading', 'w': 'Writing', 'l': 'Listening'}
         
         msg = f"📍 <b>{topic_num}-topik > {section_display[section_type]} > {question_num}-savol</b>\n"
         msg += "━━━━━━━━━━━━━━━━━\n\n"
@@ -1385,20 +1250,8 @@ def text_handler(message):
         
         msg += '\n' + get_text(uid, 'words_count').format(len(all_words))
         
-        # Inline tugmalar
-        markup = get_question_actions_inline(
-            topic_num, 
-            section_type, 
-            question_num, 
-            True,  # so'zlar bor
-            uid
-        )
-        
+        markup = get_question_actions_inline(topic_num, section_type, question_num, True, uid)
         bot.send_message(uid, msg, parse_mode='HTML', reply_markup=markup)
-        
-        # Context SAQLANADI - ortga bosilmaguncha
-        # del user_context[uid]  # BU QATORNI O'CHIRDIM
-    
     
     # ============================================
     # SO'Z O'CHIRISH
@@ -1413,20 +1266,16 @@ def text_handler(message):
         section_name = section_map[section_type]
         question_key = f'{question_num}-savol so\'zlari'
         
-        # Ma'lumotlarni yuklash
         data = load_user_data(uid)
         
-        if not (topic_key in data and 
-                section_name in data[topic_key] and 
-                question_key in data[topic_key][section_name]):
+        if not (topic_key in data and section_name in data[topic_key] and question_key in data[topic_key][section_name]):
             bot.send_message(uid, "❌ So'zlar topilmadi!")
             del user_context[uid]
             return
         
         all_words = data[topic_key][section_name][question_key]
-        words_list = list(all_words.items())  # [(kr1, uz1), (kr2, uz2), ...]
+        words_list = list(all_words.items())
         
-        # So'zlarni vergul bilan ajratish
         words_to_remove = [w.strip() for w in text.split(',')]
         
         removed_list = []
@@ -1435,26 +1284,26 @@ def text_handler(message):
         for word in words_to_remove:
             found = False
             
-            # RAQAM bo'lsa - index bo'yicha o'chirish
+            # Raqam bo'lsa
             if word.isdigit():
-                index = int(word) - 1  # 1-based to 0-based
+                index = int(word) - 1
                 if 0 <= index < len(words_list):
                     kr, uz = words_list[index]
-                    if kr in all_words:  # Hali o'chirilmaganligini tekshirish
+                    if kr in all_words:
                         del all_words[kr]
                         removed_list.append(f"{word}. {kr} → {uz}")
                         found = True
                 else:
                     not_found_list.append(f"{word} (raqam xato)")
             else:
-                # Koreys so'z sifatida qidirish (kalit)
+                # Kalit bo'yicha
                 if word in all_words:
                     removed_translation = all_words[word]
                     del all_words[word]
                     removed_list.append(f"{word} → {removed_translation}")
                     found = True
                 else:
-                    # O'zbek so'z sifatida qidirish (qiymat)
+                    # Qiymat bo'yicha
                     for kr, uz in list(all_words.items()):
                         if uz == word:
                             del all_words[kr]
@@ -1469,15 +1318,10 @@ def text_handler(message):
         if removed_list:
             save_user_data(uid, data)
         
-        # Yangilangan so'zlarni olish
+        # Xabar
         remaining_words = data[topic_key][section_name][question_key]
         
-        # Xabar tayyorlash
-        section_display = {
-            'r': 'Reading',
-            'w': 'Writing',
-            'l': 'Listening'
-        }
+        section_display = {'r': 'Reading', 'w': 'Writing', 'l': 'Listening'}
         
         msg = f"📍 <b>{topic_num}-topik > {section_display[section_type]} > {question_num}-savol</b>\n"
         msg += "━━━━━━━━━━━━━━━━━\n\n"
@@ -1502,17 +1346,8 @@ def text_handler(message):
         else:
             msg += get_text(uid, 'words_empty')
         
-        # Inline tugmalar
-        markup = get_question_actions_inline(
-            topic_num, 
-            section_type, 
-            question_num,   
-            bool(remaining_words),
-            uid
-        )
-        
+        markup = get_question_actions_inline(topic_num, section_type, question_num, bool(remaining_words), uid)
         bot.send_message(uid, msg, parse_mode='HTML', reply_markup=markup)
-
 
 
 # ============================================
