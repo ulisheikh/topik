@@ -2,6 +2,7 @@ import aiosqlite
 import os
 from datetime import datetime
 from typing import Optional, List, Tuple
+import random
 
 class UserDatabase:
     """Foydalanuvchilar statistikasi uchun SQLite database"""
@@ -263,3 +264,69 @@ class UserDatabase:
             now = datetime.now().isoformat()
             await db.execute('INSERT OR IGNORE INTO admins (user_id, added_at) VALUES (?, ?)', (user_id, now))
             await db.commit()
+
+    # 1. database/db.py ichidagi init_db funksiyasiga mana shu jadvalni qo'shib qo'ying:
+    # (Yoki shunchaki klass ichiga yangi funksiya sifatida qo'shing, u avtomat tekshiradi)
+    async def init_game_stats_table(self):
+        """O'yin statistikasi uchun jadval yaratish"""
+        async with aiosqlite.connect(self.db_path) as db:
+            await db.execute('''
+                CREATE TABLE IF NOT EXISTS word_game_stats (
+                    user_id INTEGER,
+                    korean_word TEXT,
+                    uzbek_word TEXT,
+                    wrong_count INTEGER DEFAULT 0,
+                    correct_count INTEGER DEFAULT 0,
+                    PRIMARY KEY (user_id, korean_word)
+                )
+            ''')
+            await db.commit()
+
+    async def update_word_score(self, user_id: int, korean: str, uzbek: str, is_correct: bool):
+        """Bilaman yoki Bilmayman bosilganda statistikani yangilash"""
+        await self.init_game_stats_table() # Jadval borligiga ishonch hosil qilish
+        async with aiosqlite.connect(self.db_path) as db:
+            if is_correct:
+                await db.execute('''
+                    INSERT INTO word_game_stats (user_id, korean_word, uzbek_word, correct_count)
+                    VALUES (?, ?, ?, 1)
+                    ON CONFLICT(user_id, korean_word) 
+                    DO UPDATE SET correct_count = correct_count + 1
+                ''', (user_id, korean, uzbek))
+            else:
+                await db.execute('''
+                    INSERT INTO word_game_stats (user_id, korean_word, uzbek_word, wrong_count)
+                    VALUES (?, ?, ?, 1)
+                    ON CONFLICT(user_id, korean_word) 
+                    DO UPDATE SET wrong_count = wrong_count + 1
+                ''', (user_id, korean, uzbek))
+            await db.commit()
+
+    async def get_prioritized_game_words(self, user_id: int, all_words: list) -> list:
+        """
+        Siz qiynalgan (wrong_count yuqori bo'lgan) so'zlarni 
+        boshqa so'zlarga qaraganda ko'proq (tez-tez) chiqarish uchun saralash
+        """
+        await self.init_game_stats_table()
+        async with aiosqlite.connect(self.db_path) as db:
+            async with db.execute(
+                "SELECT korean_word, wrong_count FROM word_game_stats WHERE user_id = ?", 
+                (user_id,)
+            ) as cursor:
+                rows = await cursor.fetchall()
+                stats = {row[0]: row[1] for row in rows}
+
+        # Har bir so'zga xatolar soniga qarab "vazn" (ustunlik) beramiz
+        weighted_words = []
+        for w in all_words:
+            korean = w['korean']
+            wrong_cnt = stats.get(korean, 0)
+            
+            # Agar so'z ko'p xato qilingan bo'lsa, ro'yxatga ko'proq qo'shamiz (ehtimollik oshadi)
+            # Kamida 1 marta, ko'pi bilan (wrong_cnt + 1) marta qo'shiladi
+            loops = 1 + min(wrong_cnt, 5) 
+            for _ in range(loops):
+                weighted_words.append(w)
+                
+        random.shuffle(weighted_words)
+        return weighted_words

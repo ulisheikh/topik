@@ -1,17 +1,16 @@
 # -*- coding: utf-8 -*-
 """
-EXAM KLAVIATURALAR - YULDUZLI SO'ZLAR BILAN
+EXAM KLAVIATURALAR - TOZALANGAN (RANDOMSIZ)
 """
 
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 
 
 def get_exam_main_keyboard() -> InlineKeyboardMarkup:
-    """Exam asosiy menyu (한국어) - YULDUZLI SO'ZLAR BILAN"""
+    """Exam asosiy menyu (한국어) - TASODIFIY (RANDOM) TUGMASI OLIB TASHLANDI"""
     keyboard = [
-        [InlineKeyboardButton(text="🎯 지정", callback_data="exam_select")],
-        [InlineKeyboardButton(text="🔀 랜덤", callback_data="exam_random")],
-        [InlineKeyboardButton(text="⭐ 별표 단어", callback_data="exam_star")]  # YANGI!
+        [InlineKeyboardButton(text="🎯 지정 (Bo'lim tanlash)", callback_data="exam_select")],
+        [InlineKeyboardButton(text="⭐ 별표 단어 (Yulduzli so'zlar)", callback_data="exam_star")]
     ]
     return InlineKeyboardMarkup(inline_keyboard=keyboard)
 
