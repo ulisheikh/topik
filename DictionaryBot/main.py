@@ -10,7 +10,6 @@ import os
 import re
 import threading
 import time
-from datetime import datetime
 
 # IMPORT CONFIG
 from config import *
@@ -44,18 +43,16 @@ user_context = {}
 # ============================================
 
 def get_help_text(user_id):
-    """Yordam matni - Sodda"""
-    lang = get_user_language(user_id)
-    
+    """Yordam matni"""
     header = f"<b>{get_text(user_id, 'help_title')}</b>\n"
     header += "━━━━━━━━━━━━━━━━━\n\n"
-    
-    body = f"{get_text(user_id, 'help_edit')}\n\n"
-    body += f"{get_text(user_id, 'help_delete')}\n\n"
+    body  = f"{get_text(user_id, 'help_add')}\n\n"
+    body += f"{get_text(user_id, 'help_navigate')}\n\n"
     body += f"{get_text(user_id, 'help_search')}\n\n"
-    body += "━━━━━━━━━━━━━━━━━\n"
+    body += f"{get_text(user_id, 'help_edit')}\n\n"
+    body += f"{get_text(user_id, 'help_delete')}\n\n"
+    body += f"{get_text(user_id, 'help_export')}\n\n"
     body += f"{get_text(user_id, 'help_tip')}"
-    
     return header + body
 
 def get_location_text(user_id):
@@ -148,7 +145,7 @@ def start_handler(message):
 # /help KOMANDASI
 # ============================================
 
-@bot.message_handler(func=lambda m: m.text == '/help')
+@bot.message_handler(commands=['help'])
 def help_handler(message):
     """Yordam matni"""
     uid = message.from_user.id
@@ -278,7 +275,7 @@ def settings_handler(message):
 # EXPORT (JSON VA PYTHON)
 # ============================================
 
-@bot.message_handler(func=lambda m: m.text in ['📥 JSON', '📥 JSON'])
+@bot.message_handler(func=lambda m: m.text in ['📥 JSON'])
 def export_json_handler(message):
     """JSON export"""
     uid = message.from_user.id
@@ -299,7 +296,7 @@ def export_json_handler(message):
     else:
         bot.send_message(uid, get_text(uid, 'export_empty'))
 
-@bot.message_handler(func=lambda m: m.text in ['🐍 PYTHON', '🐍 PYTHON'])
+@bot.message_handler(func=lambda m: m.text in ['🐍 PYTHON'])
 def export_python_handler(message):
     """Python export"""
     uid = message.from_user.id
@@ -1385,398 +1382,6 @@ def clean_old_backups():
             print(f"❌ Tozalashda xato: {e}")
         
         time.sleep(3600)
-
-# ============================================
-# ISHGA TUSHIRISH
-# ============================================
-
-# -*- coding: utf-8 -*-
-"""
-CALLBACK HANDLERS - Inline tugmalar uchun
-Bu kodlarni main.py ga qo'shish kerak
-"""
-
-from telebot import types
-
-# ============================================
-# CALLBACK QUERY HANDLERS
-# ============================================
-
-@bot.callback_query_handler(func=lambda call: call.data.startswith('topic_'))
-def topic_callback_handler(call):
-    """Topik tanlanganda bo'limlarni ko'rsatish"""
-    uid = call.from_user.id
-    
-    try:
-        topic_num = call.data.replace('topic_', '')
-        topic_key = f"Topik-{topic_num}"
-        
-        data = load_user_data(uid)
-        
-        if not data or topic_key not in data:
-            bot.answer_callback_query(call.id, "❌ Topik topilmadi")
-            return
-        
-        # Bo'limlar inline klaviaturasi
-        markup = types.InlineKeyboardMarkup(row_width=3)
-        
-        sections_info = []
-        buttons = []
-        
-        for section in ['reading', 'writing', 'listening']:
-            if section in data[topic_key]:
-                # So'zlar sonini hisoblash
-                section_words = 0
-                for question, words in data[topic_key][section].items():
-                    section_words += len(words)
-                
-                if section_words > 0:
-                    section_name = section.upper()
-                    sections_info.append(f"📚 {section_name}: {section_words} ta so'z")
-                    
-                    # Inline tugma
-                    button = types.InlineKeyboardButton(
-                        text=f"📖 {section_name}",
-                        callback_data=f"section_{topic_num}_{section}"
-                    )
-                    buttons.append(button)
-        
-        # Tugmalarni 3 tadan qo'shish
-        for i in range(0, len(buttons), 3):
-            markup.row(*buttons[i:i+3])
-        
-        # Orqaga tugmasi
-        markup.row(types.InlineKeyboardButton("◀️ Orqaga", callback_data="back_to_topics"))
-        
-        # Xabar
-        msg = f"📖 <b>{topic_num}-TOPIK</b>\n"
-        msg += "━━━━━━━━━━━━━━━━━\n\n"
-        msg += "\n".join(sections_info)
-        msg += "\n\n<b>Bo'limni tanlang:</b>"
-        
-        bot.edit_message_text(
-            msg,
-            call.message.chat.id,
-            call.message.message_id,
-            parse_mode="HTML",
-            reply_markup=markup
-        )
-        
-        bot.answer_callback_query(call.id)
-        
-    except Exception as e:
-        bot.answer_callback_query(call.id, f"❌ Xatolik: {e}")
-
-
-@bot.callback_query_handler(func=lambda call: call.data.startswith('section_'))
-def section_callback_handler(call):
-    """Bo'lim tanlanganda savollarni ko'rsatish"""
-    uid = call.from_user.id
-    
-    try:
-        # section_35_reading
-        parts = call.data.split('_')
-        topic_num = parts[1]
-        section = parts[2]
-        
-        topic_key = f"Topik-{topic_num}"
-        data = load_user_data(uid)
-        
-        if not data or topic_key not in data or section not in data[topic_key]:
-            bot.answer_callback_query(call.id, "❌ Bo'lim topilmadi")
-            return
-        
-        # Savollarni olish
-        questions = data[topic_key][section]
-        
-        # Inline klaviatura - 4 ustun
-        markup = types.InlineKeyboardMarkup(row_width=4)
-        
-        # ALL tugmasi (birinchi qatorda alohida)
-        all_button = types.InlineKeyboardButton(
-            text="📚 ALL",
-            callback_data=f"question_{topic_num}_{section}_all"
-        )
-        markup.row(all_button)
-        
-        # Savol raqamlari
-        question_buttons = []
-        question_nums = []
-        
-        for q_key in questions.keys():
-            # "9-savol so'zlari" → "9"
-            q_num = q_key.replace("-savol so'zlari", "")
-            if q_num.isdigit():
-                question_nums.append(int(q_num))
-        
-        # Tartibga solish
-        question_nums.sort()
-        
-        # Tugmalar yaratish
-        for q_num in question_nums:
-            q_key = f"{q_num}-savol so'zlari"
-            if q_key in questions and len(questions[q_key]) > 0:
-                button = types.InlineKeyboardButton(
-                    text=str(q_num),
-                    callback_data=f"question_{topic_num}_{section}_{q_num}"
-                )
-                question_buttons.append(button)
-        
-        # 4 tadan qo'shish
-        for i in range(0, len(question_buttons), 4):
-            markup.row(*question_buttons[i:i+4])
-        
-        # Orqaga tugmasi
-        markup.row(types.InlineKeyboardButton("◀️ Orqaga", callback_data=f"topic_{topic_num}"))
-        
-        # Xabar
-        msg = f"📖 <b>{topic_num}-TOPIK > {section.upper()}</b>\n"
-        msg += "━━━━━━━━━━━━━━━━━\n\n"
-        msg += f"📊 Jami savollar: {len(question_buttons)} ta\n\n"
-        msg += "<b>Savolni tanlang:</b>"
-        
-        bot.edit_message_text(
-            msg,
-            call.message.chat.id,
-            call.message.message_id,
-            parse_mode="HTML",
-            reply_markup=markup
-        )
-        
-        bot.answer_callback_query(call.id)
-        
-    except Exception as e:
-        bot.answer_callback_query(call.id, f"❌ Xatolik: {e}")
-
-
-@bot.callback_query_handler(func=lambda call: call.data.startswith('question_'))
-def question_callback_handler(call):
-    """Savol tanlanganda so'zlarni ko'rsatish"""
-    uid = call.from_user.id
-    
-    try:
-        # question_35_reading_9 yoki question_35_reading_all
-        parts = call.data.split('_')
-        topic_num = parts[1]
-        section = parts[2]
-        q_identifier = parts[3]  # "9" yoki "all"
-        
-        topic_key = f"Topik-{topic_num}"
-        data = load_user_data(uid)
-        
-        if not data or topic_key not in data or section not in data[topic_key]:
-            bot.answer_callback_query(call.id, "❌ Ma'lumot topilmadi")
-            return
-        
-        questions = data[topic_key][section]
-        
-        # So'zlarni to'plash
-        words_list = []
-        
-        if q_identifier == "all":
-            # Barcha savollarni ko'rsatish
-            question_nums = []
-            for q_key in questions.keys():
-                q_num = q_key.replace("-savol so'zlari", "")
-                if q_num.isdigit():
-                    question_nums.append(int(q_num))
-            
-            question_nums.sort()
-            
-            for q_num in question_nums:
-                q_key = f"{q_num}-savol so'zlari"
-                if q_key in questions:
-                    words = questions[q_key]
-                    if words:
-                        words_list.append(f"\n📝 <b>{q_num}-savol:</b>")
-                        for idx, (korean, uzbek) in enumerate(words.items(), 1):
-                            words_list.append(f"{idx}. {korean} → {uzbek}")
-        else:
-            # Bitta savolni ko'rsatish
-            q_key = f"{q_identifier}-savol so'zlari"
-            if q_key in questions:
-                words = questions[q_key]
-                for idx, (korean, uzbek) in enumerate(words.items(), 1):
-                    words_list.append(f"{idx}. {korean} → {uzbek}")
-        
-        # Xabar tayyorlash
-        if q_identifier == "all":
-            header = f"📖 <b>{topic_num}-TOPIK > {section.upper()} > ALL</b>\n"
-        else:
-            header = f"📖 <b>{topic_num}-TOPIK > {section.upper()} > {q_identifier}-savol</b>\n"
-        
-        header += "━━━━━━━━━━━━━━━━━\n"
-        
-        msg = header + "\n".join(words_list)
-        
-        # Xabar juda uzun bo'lsa, bo'lib yuborish
-        MAX_LENGTH = 4000
-        
-        if len(msg) > MAX_LENGTH:
-            # Bo'limlab yuborish
-            chunks = []
-            current_chunk = header
-            
-            for line in words_list:
-                if len(current_chunk) + len(line) + 1 > MAX_LENGTH:
-                    chunks.append(current_chunk)
-                    current_chunk = line + "\n"
-                else:
-                    current_chunk += line + "\n"
-            
-            if current_chunk:
-                chunks.append(current_chunk)
-            
-            # Birinchi qismni edit qilish
-            markup = types.InlineKeyboardMarkup()
-            markup.row(types.InlineKeyboardButton("◀️ Orqaga", callback_data=f"section_{topic_num}_{section}"))
-            
-            bot.edit_message_text(
-                chunks[0],
-                call.message.chat.id,
-                call.message.message_id,
-                parse_mode="HTML",
-                reply_markup=markup
-            )
-            
-            # Qolganlarini yuborish
-            for chunk in chunks[1:]:
-                bot.send_message(uid, chunk, parse_mode="HTML")
-            
-        else:
-            # Oddiy holat
-            markup = types.InlineKeyboardMarkup()
-            markup.row(types.InlineKeyboardButton("◀️ Orqaga", callback_data=f"section_{topic_num}_{section}"))
-            
-            bot.edit_message_text(
-                msg,
-                call.message.chat.id,
-                call.message.message_id,
-                parse_mode="HTML",
-                reply_markup=markup
-            )
-        
-        bot.answer_callback_query(call.id)
-        
-    except Exception as e:
-        bot.answer_callback_query(call.id, f"❌ Xatolik: {e}")
-
-
-@bot.callback_query_handler(func=lambda call: call.data == 'back_to_topics')
-def back_to_topics_handler(call):
-    """Topiklar ro'yxatiga qaytish"""
-    uid = call.from_user.id
-    
-    try:
-        data = load_user_data(uid)
-        
-        if not data:
-            bot.answer_callback_query(call.id, "❌ Ma'lumot yo'q")
-            return
-        
-        # Topiklar ro'yxati
-        topics = []
-        for topic_key in data.keys():
-            if topic_key.startswith("Topik-"):
-                topic_num = topic_key.replace("Topik-", "")
-                if topic_num.isdigit():
-                    topics.append(int(topic_num))
-        
-        topics_sorted = sorted(topics)
-        
-        # Inline klaviatura - 4 ustun
-        markup = types.InlineKeyboardMarkup(row_width=4)
-        
-        buttons = []
-        for topic_num in topics_sorted:
-            button = types.InlineKeyboardButton(
-                text=f"📖 {topic_num}",
-                callback_data=f"topic_{topic_num}"
-            )
-            buttons.append(button)
-        
-        # 4 tadan qo'shish
-        for i in range(0, len(buttons), 4):
-            markup.row(*buttons[i:i+4])
-        
-        msg = "📚 <b>TOPIKLAR RO'YXATI</b>\n\n"
-        msg += f"Jami: {len(topics_sorted)} ta topik\n\n"
-        msg += "Topikni tanlang:"
-        
-        bot.edit_message_text(
-            msg,
-            call.message.chat.id,
-            call.message.message_id,
-            parse_mode="HTML",
-            reply_markup=markup
-        )
-        
-        bot.answer_callback_query(call.id)
-        
-    except Exception as e:
-        bot.answer_callback_query(call.id, f"❌ Xatolik: {e}")
-
-
-# ============================================
-# YANGILANGAN SECTIONS HANDLER
-# ============================================
-
-@bot.message_handler(func=lambda m: m.text in ['📂 BO\'LIMLAR', '📂 섹션'])
-def sections_handler(message):
-    """Bo'limlar menyusi"""
-    uid = message.from_user.id
-    
-    if not is_logged_in(uid):
-        bot.send_message(uid, get_text(uid, 'enter_password'))
-        return
-    
-    data = load_user_data(uid)
-    
-    if not data:
-        bot.send_message(uid, get_text(uid, 'no_topics'))
-        return
-    
-    # Topiklar ro'yxati
-    topics = []
-    for topic_key in data.keys():
-        if topic_key.startswith("Topik-"):
-            topic_num = topic_key.replace("Topik-", "")
-            if topic_num.isdigit():
-                topics.append(int(topic_num))
-    
-    topics_sorted = sorted(topics)
-    
-    if not topics_sorted:
-        bot.send_message(uid, get_text(uid, 'no_topics'))
-        return
-    
-    # Inline klaviatura - 4 ustun
-    markup = types.InlineKeyboardMarkup(row_width=4)
-    
-    buttons = []
-    for topic_num in topics_sorted:
-        button = types.InlineKeyboardButton(
-            text=f"📖 {topic_num}",
-            callback_data=f"topic_{topic_num}"
-        )
-        buttons.append(button)
-    
-    # 4 tadan qo'shish
-    for i in range(0, len(buttons), 4):
-        markup.row(*buttons[i:i+4])
-    
-    msg = "📚 <b>TOPIKLAR RO'YXATI</b>\n\n"
-    msg += f"Jami: {len(topics_sorted)} ta topik\n\n"
-    msg += "Topikni tanlang:"
-    
-    bot.send_message(
-        uid,
-        msg,
-        parse_mode="HTML",
-        reply_markup=markup
-    )
-
-
 # ==================== ISHGA TUSHIRISH (YANGILANGAN) ====================
 
 if __name__ == "__main__":

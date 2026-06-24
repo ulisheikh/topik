@@ -127,11 +127,57 @@ TEXTS = {
         'error_not_found': '❌ Topilmadi',
         
         # YORDAM
-        'help_title': '📚 YORDAM',
-        'help_edit': '✏️ SO\'Z TAHRIRLASH\n👉 <code>e.eski_so\'z.yangi_so\'z</code>\n👉 Masalan: <code>e.안녕.좋은아침</code>',
-        'help_delete': '🗑 SO\'Z O\'CHIRISH\n👉 Raqam: <code>1</code> yoki <code>1,3,5</code>\n👉 So\'z: <code>안녕</code> yoki <code>안녕,감사합니다</code>',
-        'help_search': '🔍 SO\'Z QIDIRISH\n👉 <code>s.so\'z</code>\n👉 Masalan: <code>s.안녕</code>',
-        'help_tip': '💡 Har yerdan e. va s. ishlatishingiz mumkin!',
+        'help_title': '📚 YORDAM — FOYDALANISH YO\'RIQNOMASI',
+        'help_add': (
+            '➕ <b>SO\'Z QO\'SHISH</b>\n'
+            'Topik va savol ichiga kirib, har qatorda yozing:\n'
+            '<code>안녕 salom</code>\n'
+            '<code>감사합니다 rahmat</code>\n'
+            '(Koreys va o\'zbek orasida bo\'sh joy bo\'lsin)'
+        ),
+        'help_navigate': (
+            '📂 <b>TOPIK VA SAVOL TANLASH</b>\n'
+            'Tezkor o\'tish:\n'
+            '<code>&gt;35r</code>  — 35-topik, Reading\n'
+            '<code>&gt;35w</code>  — 35-topik, Writing\n'
+            '<code>&gt;35l</code>  — 35-topik, Listening\n'
+            'Keyin savol raqamini tanlang (masalan: <code>12</code>)'
+        ),
+        'help_search': (
+            '🔍 <b>SO\'Z QIDIRISH</b>\n'
+            'Har yerdan shunchaki yozing:\n'
+            '<code>안녕</code>  — koreys so\'z\n'
+            '<code>salom</code>  — o\'zbek so\'z\n'
+            'yoki <code>s.so\'z</code> formatida ham ishlaydi'
+        ),
+        'help_edit': (
+            '✏️ <b>SO\'Z TAHRIRLASH</b>\n'
+            'Eski so\'z = yangi tarjima yozing:\n'
+            '<code>안녕=assalomu alaykum</code>\n'
+            '<code>salom=안녕하세요</code>\n'
+            '💡 Koreys yoki o\'zbek tomondan yozsa ham bo\'ladi'
+        ),
+        'help_delete': (
+            '🗑 <b>SO\'Z O\'CHIRISH</b>\n'
+            'Savol ichida raqam yoki so\'z yozing:\n'
+            '<code>1</code>  — birinchi so\'zni o\'chirish\n'
+            '<code>1,3,5</code>  — bir nechtasini o\'chirish\n'
+            '<code>안녕</code>  — nomidan o\'chirish\n'
+            '<code>안녕,감사합니다</code>  — bir nechtasini nomidan'
+        ),
+        'help_export': (
+            '📥 <b>EKSPORT</b>\n'
+            '• <b>JSON</b> tugmasi — barcha so\'zlar JSON faylda\n'
+            '• <b>PYTHON</b> tugmasi — Python dict formatida'
+        ),
+        'help_tip': (
+            '━━━━━━━━━━━━━━━━━\n'
+            '💡 <b>ESLATMALAR:</b>\n'
+            '• Qidirish va tahrirlash <b>har yerdan</b> ishlaydi\n'
+            '• So\'z o\'chirish faqat <b>savol ichida</b> ishlaydi\n'
+            '• <b>/status</b> — tizim holati (Admin)\n'
+            '• <b>/help</b> — shu yo\'riqnomani qayta ko\'rish'
+        ),
         
         # BOT HAQIDA
         'about_bot': 'ℹ️ BOT HAQIDA\n\n'
@@ -281,11 +327,57 @@ TEXTS = {
         'error_not_found': '❌ 찾을 수 없음',
         
         # YORDAM
-        'help_title': '📚 도움말',
-        'help_edit': '✏️ 단어 수정\n👉 <code>e.이전_단어.새_단어</code>\n👉 예: <code>e.안녕.좋은아침</code>',
-        'help_delete': '🗑 단어 삭제\n👉 번호: <code>1</code> 또는 <code>1,3,5</code>\n👉 단어: <code>안녕</code> 또는 <code>안녕,감사합니다</code>',
-        'help_search': '🔍 단어 검색\n👉 <code>s.단어</code>\n👉 예: <code>s.안녕</code>',
-        'help_tip': '💡 어디서나 e. 와 s. 를 사용할 수 있습니다!',
+        'help_title': '📚 도움말 — 사용 가이드',
+        'help_add': (
+            '➕ <b>단어 추가</b>\n'
+            '토픽과 질문 안에서 각 줄에 입력:\n'
+            '<code>안녕 salom</code>\n'
+            '<code>감사합니다 rahmat</code>\n'
+            '(한국어와 우즈베크어 사이에 공백 필요)'
+        ),
+        'help_navigate': (
+            '📂 <b>토픽 및 질문 선택</b>\n'
+            '빠른 이동:\n'
+            '<code>&gt;35r</code>  — 35번 토픽, Reading\n'
+            '<code>&gt;35w</code>  — 35번 토픽, Writing\n'
+            '<code>&gt;35l</code>  — 35번 토픽, Listening\n'
+            '그 후 질문 번호 선택 (예: <code>12</code>)'
+        ),
+        'help_search': (
+            '🔍 <b>단어 검색</b>\n'
+            '어디서나 바로 입력:\n'
+            '<code>안녕</code>  — 한국어 검색\n'
+            '<code>salom</code>  — 우즈베크어 검색\n'
+            '또는 <code>s.단어</code> 형식도 가능'
+        ),
+        'help_edit': (
+            '✏️ <b>단어 수정</b>\n'
+            '이전 단어 = 새 번역 입력:\n'
+            '<code>안녕=안녕하세요</code>\n'
+            '<code>salom=안녕하세요</code>\n'
+            '💡 한국어나 우즈베크어 어느 쪽으로든 가능'
+        ),
+        'help_delete': (
+            '🗑 <b>단어 삭제</b>\n'
+            '질문 안에서 번호나 단어를 입력:\n'
+            '<code>1</code>  — 첫 번째 단어 삭제\n'
+            '<code>1,3,5</code>  — 여러 개 삭제\n'
+            '<code>안녕</code>  — 단어명으로 삭제\n'
+            '<code>안녕,감사합니다</code>  — 여러 개 단어명으로'
+        ),
+        'help_export': (
+            '📥 <b>내보내기</b>\n'
+            '• <b>JSON</b> 버튼 — 전체 단어 JSON 파일\n'
+            '• <b>PYTHON</b> 버튼 — Python dict 형식'
+        ),
+        'help_tip': (
+            '━━━━━━━━━━━━━━━━━\n'
+            '💡 <b>참고사항:</b>\n'
+            '• 검색과 수정은 <b>어디서나</b> 가능\n'
+            '• 단어 삭제는 <b>질문 안에서만</b> 작동\n'
+            '• <b>/status</b> — 시스템 상태 (관리자)\n'
+            '• <b>/help</b> — 이 가이드 다시 보기'
+        ),
         
         # BOT HAQIDA
         'about_bot': 'ℹ️ 봇 정보\n\n'
