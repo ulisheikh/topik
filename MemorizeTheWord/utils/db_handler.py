@@ -254,3 +254,39 @@ class DictionaryHandler:
         if not unknown_words:
             return None
         return random.choice(unknown_words)
+
+    def mark_as_known(self, user_id, korean, uzbek, topic, section, chapter):
+        """So'zni bilmaydigan ro'yxatidan o'chirish (** prefiksini olib tashlash)"""
+        data = self.load_user_data(user_id)
+        
+        if not topic.startswith("Topik-"):
+            topic_key = f"Topik-{topic.replace('-topik', '')}"
+        else:
+            topic_key = topic
+        
+        chapter_key = chapter.replace("-savol", "") + "-savol so'zlari"
+        
+        try:
+            if topic_key in data and section in data[topic_key]:
+                if chapter_key in data[topic_key][section]:
+                    words = data[topic_key][section][chapter_key]
+                    
+                    original_key = None
+                    for k in words.keys():
+                        if k.lstrip('*') == korean.lstrip('*'):
+                            original_key = k
+                            break
+                    
+                    if original_key and original_key.startswith('**'):
+                        old_value = words.pop(original_key)
+                        clean_key = original_key.lstrip('*')
+                        words[clean_key] = old_value
+                        
+                        file_path = self.get_user_dict_file(user_id)
+                        with open(file_path, 'w', encoding='utf-8') as f:
+                            json.dump(data, f, ensure_ascii=False, indent=2)
+                        return True
+            return False
+        except Exception as e:
+            print(f"mark_as_known error: {e}")
+            return False

@@ -105,7 +105,50 @@ ALL_TEXTS = {
         "start_message": "🎓 <b>Memorize Bot'ga xush kelibsiz!</b>\n\nBu bot TOPIK so'zlarini smart tarzda yodlashga yordam beradi.\n\n📊 <b>Bot ma'lumotlari:</b>\n👥 Foydalanuvchilar: {users}\n📚 Topiklar: {topics}\n📖 Jami so'zlar: {words}\n\nQuyidagi tugmalardan foydalaning! 👇",
         "my_stats": "📊 <b>Sizning statistikangiz:</b>\n\n✅ To'g'ri javoblar: {correct}\n❌ Noto'g'ri javoblar: {wrong}\n⏱ Faol vaqt: {time} daqiqa\n🏆 Reyting: {rank}/{total}",
         "bot_statistics": "📈 <b>Bot Statistikasi:</b>\n\n👥 Jami foydalanuvchilar: {users}\n📚 Bazadagi so'zlar: {words}",
-        "about_bot": "ℹ️ <b>Bot haqida:</b>\n\n📌 Versiya: 2.0\n🔧 Texnologiya: Aiogram 3\n🎯 Maqsad: TOPIK so'zlarini yodlash\n\n🎮 O'yin rejimi - cheksiz mashq\n📂 Bo'limlar - Topik bo'yicha taqsimlangan\n📊 Statistika - Natijalarni kuzatish\n⏰ Avtomatik - Rejali yodlash",
+        "about_bot": (
+            "ℹ️ <b>Bot haqida:</b>\n\n"
+            "📌 Versiya: 2.0\n"
+            "🔧 Texnologiya: Aiogram 3\n"
+            "🎯 Maqsad: TOPIK so'zlarini yodlash\n\n"
+            "🎮 O'yin rejimi - cheksiz mashq\n"
+            "📂 Bo'limlar - Topik bo'yicha taqsimlangan\n"
+            "📊 Statistika - Natijalarni kuzatish\n"
+            "⏰ Avtomatik - Rejali yodlash\n\n"
+            "━━━━━━━━━━━━━━━━━━━━\n"
+            "📖 <b>FOYDALANISH YO'RIQNOMASI</b>\n"
+            "━━━━━━━━━━━━━━━━━━━━\n\n"
+            "<b>➕ SO'Z QO'SHISH:</b>\n"
+            "Botga shunchaki yozing:\n"
+            "<code>안녕 salom</code>\n\n"
+            "<b>⭐ YULDUZLI SO'Z qo'shish:</b>\n"
+            "<code>*안녕 salom</code>  ← * bilan boshlang\n\n"
+            "<b>🎮 /game — SO'Z O'YINI:</b>\n"
+            "• <b>🌍 Umumiy rejim</b> — barcha so'zlaringizdan tasodifiy\n"
+            "• <b>🎯 Belgilangan rejim</b> — topik va bo'lim tanlaysiz\n"
+            "• <b>⭐ Yulduzli so'zlar</b> — faqat * bilan belgilanganlar\n"
+            "• <b>❌ Bilmaydigan so'zlar</b> — avval bilmagan so'zlar (**)\n\n"
+            "O'yin jarayonida:\n"
+            "✅ <b>Bilaman</b> — bilsangiz bosing, keyingisiga o'tadi\n"
+            "❌ <b>Bilmayman</b> — so'z bilmaydiganlar ro'yxatiga tushadi\n"
+            "🛑 <b>To'xtatish</b> — o'yinni yakunlaydi\n"
+            "👁 <b>So'zni ko'rish</b> — javobni ko'rish (statistikaga ta'sir qilmaydi)\n\n"
+            "<b>⏰ /avtogame — AVTOMATIK REJIM:</b>\n"
+            "Vaqt oralig'i tanlaysiz (5/10/15/30/60 daqiqa)\n"
+            "Har shu vaqtda 10 ta so'z avtomatik yuboriladi\n\n"
+            "<b>📂 /bo'limlar — BO'LIMLAR:</b>\n"
+            "Topik → Bo'lim → Savol bo'yicha so'zlarni ko'rish\n\n"
+            "<b>📄 /exam_doc — IMTIHON FAYLI:</b>\n"
+            "So'zlaringizdan Word formatida imtihon varaqasi yaratadi\n"
+            "Har bir so'z uchun 4 ta variant (test shaklida)\n\n"
+            "<b>📥 /download_words — LUG'ATNI YUKLAB OLISH:</b>\n"
+            "• Word (한국어 → O'zbekcha)\n"
+            "• Word (O'zbekcha → 한국어)\n"
+            "• Word (ikki tilda birga)\n"
+            "• JSON format\n\n"
+            "<b>📊 Statistika:</b>\n"
+            "Asosiy menyu → Statistika tugmasidan ko'rasiz\n"
+            "To'g'ri/noto'g'ri javoblar va reyting ko'rsatiladi"
+        ),
         "game_select_mode": "🎮 <b>O'yin rejimini tanlang:</b>",
         "btn_general_mode": "🌍 Umumiy rejim",
         "btn_custom_mode": "🎯 Belgilangan rejim",
@@ -161,7 +204,50 @@ ALL_TEXTS = {
         "start_message": "🎓 <b>Memorize Bot에 오신 것을 환영합니다!</b>\n\n이 봇은 TOPIK 단어를 스마트하게 암기하는 데 도움을 줍니다.\n\n📊 <b>봇 정보:</b>\n👥 사용자: {users}\n📚 토픽: {topics}\n📖 총 단어: {words}\n\n아래 버튼을 사용하세요! 👇",
         "my_stats": "📊 <b>내 통계:</b>\n\n✅ 정답: {correct}\n❌ 오답: {wrong}\n⏱ 활동 시간: {time}분\n🏆 순위: {rank}/{total}",
         "bot_statistics": "📈 <b>봇 통계:</b>\n\n👥 총 사용자: {users}\n📚 데이터베이스 단어: {words}",
-        "about_bot": "ℹ️ <b>봇 정보:</b>\n\n📌 버전: 2.0\n🔧 기술: Aiogram 3\n🎯 목적: TOPIK 단어 암기\n\n🎮 게임 모드 - 무한 연습\n📂 섹션 - 토픽별 분류\n📊 통계 - 결과 추적\n⏰ 자동 - 정기 학습",
+        "about_bot": (
+            "ℹ️ <b>봇 정보:</b>\n\n"
+            "📌 버전: 2.0\n"
+            "🔧 기술: Aiogram 3\n"
+            "🎯 목적: TOPIK 단어 암기\n\n"
+            "🎮 게임 모드 - 무한 연습\n"
+            "📂 섹션 - 토픽별 분류\n"
+            "📊 통계 - 결과 추적\n"
+            "⏰ 자동 - 정기 학습\n\n"
+            "━━━━━━━━━━━━━━━━━━━━\n"
+            "📖 <b>사용 가이드</b>\n"
+            "━━━━━━━━━━━━━━━━━━━━\n\n"
+            "<b>➕ 단어 추가:</b>\n"
+            "봇에 바로 입력:\n"
+            "<code>안녕 salom</code>\n\n"
+            "<b>⭐ 별표 단어 추가:</b>\n"
+            "<code>*안녕 salom</code>  ← *로 시작\n\n"
+            "<b>🎮 /game — 단어 게임:</b>\n"
+            "• <b>🌍 일반 모드</b> — 전체 단어에서 랜덤\n"
+            "• <b>🎯 맞춤 모드</b> — 토픽과 섹션 선택\n"
+            "• <b>⭐ 별표 단어</b> — *로 표시된 단어만\n"
+            "• <b>❌ 모르는 단어</b> — **로 표시된 단어만\n\n"
+            "게임 중:\n"
+            "✅ <b>알아요</b> — 다음 단어로 넘어감\n"
+            "❌ <b>몰라요</b> — 모르는 단어 목록에 추가됨\n"
+            "🛑 <b>중지</b> — 게임 종료\n"
+            "👁 <b>단어 보기</b> — 정답 확인 (통계 영향 없음)\n\n"
+            "<b>⏰ /avtogame — 자동 모드:</b>\n"
+            "간격 선택 (5/10/15/30/60분)\n"
+            "해당 시간마다 단어 10개 자동 전송\n\n"
+            "<b>📂 /bo'limlar — 섹션:</b>\n"
+            "토픽 → 섹션 → 문항별 단어 보기\n\n"
+            "<b>📄 /exam_doc — 시험 파일:</b>\n"
+            "Word 형식으로 시험지 생성\n"
+            "각 단어마다 4개 선택지\n\n"
+            "<b>📥 /download_words — 사전 다운로드:</b>\n"
+            "• Word (한국어 → 우즈베크어)\n"
+            "• Word (우즈베크어 → 한국어)\n"
+            "• Word (두 언어 함께)\n"
+            "• JSON 형식\n\n"
+            "<b>📊 통계:</b>\n"
+            "메인 메뉴 → 통계 버튼에서 확인\n"
+            "정답/오답 수와 순위 표시"
+        ),
         "game_select_mode": "🎮 <b>게임 모드 선택:</b>",
         "btn_general_mode": "🌍 일반 모드",
         "btn_custom_mode": "🎯 맞춤 모드",
@@ -198,7 +284,6 @@ ALL_TEXTS = {
         "blocked_message": "🚫 차단되었습니다.\n이유: {reason}",
     }
 }
-
 
 def get_text(lang, key, **kwargs):
     target_lang = "ko" if lang in ["ko", "kr"] else "uz"
@@ -577,6 +662,98 @@ def _build_question_text(word: dict, direction: str, q_count: int, mode: str, ex
     return text
 
 
+def get_reveal_keyboard() -> InlineKeyboardMarkup:
+    """So'z savoli ostida chiqadigan yagona inline tugma"""
+    return InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="👁 So'zni ko'rish", callback_data="reveal_word")]
+    ])
+
+
+@router.callback_query(F.data == "reveal_word")
+async def reveal_word_callback(callback: CallbackQuery, state: FSMContext):
+    """'So'zni ko'rish' tugmasi - javobni alert oynada ko'rsatadi"""
+    data = await state.get_data()
+    word = data.get('current_word')
+    direction = data.get('direction', 'uz_ko')
+    if not word:
+        await callback.answer("❌ So'z topilmadi", show_alert=True)
+        return
+    korean = (word.get('korean') or '').lstrip('*')
+    uzbek = (word.get('uzbek') or '').lstrip('*')
+    answer = korean if direction == "uz_ko" else uzbek
+    await callback.answer(f"✅ {answer}", show_alert=True)
+
+
+async def _track_and_trim(state: FSMContext, chat_id: int, new_message_id: int, keep: int = 1):
+    """Yuborilgan xabar ID'larini kuzatib, eskirganlarini o'chirib turish"""
+    data = await state.get_data()
+    ids = data.get('bot_msg_ids', [])
+    ids.append(new_message_id)
+    # Faqat oxirgi `keep` ta xabarni saqlab qolamiz, qolganini o'chiramiz
+    while len(ids) > keep:
+        old_id = ids.pop(0)
+        try:
+            await bot.delete_message(chat_id, old_id)
+        except Exception:
+            pass
+    await state.update_data(bot_msg_ids=ids)
+
+
+async def send_question_message(message_or_chat, state: FSMContext, user_id: int, text: str, setup_reply_kb: bool = False):
+    """
+    Savol xabarini yuborish: xabar ichida inline 'So'zni ko'rish' tugmasi bilan.
+    Eski savol xabarini avtomatik o'chirib turadi (chat tarixini band qilmaslik uchun).
+
+    setup_reply_kb=True bo'lsa (faqat o'yin BOSHLANISHIDA bir marta kerak):
+    avval pastdagi Bilaman/Bilmayman/To'xtatish reply keyboardni o'rnatuvchi
+    qisqa xabar yuboriladi, so'ng savol xabari inline tugma bilan yuboriladi.
+    Telegramda reply keyboard bir marta o'rnatilgach doim pastda qolib turadi,
+    shuning uchun keyingi savollarda setup_reply_kb=False bo'lishi kifoya.
+    """
+    send_fn = message_or_chat.answer if hasattr(message_or_chat, 'answer') else None
+
+    if setup_reply_kb:
+        if send_fn:
+            await send_fn("🎮 O'yin boshlandi", reply_markup=get_game_reply_keyboard())
+        else:
+            await bot.send_message(user_id, "🎮 O'yin boshlandi", reply_markup=get_game_reply_keyboard())
+
+    if send_fn:
+        sent = await send_fn(text, reply_markup=get_reveal_keyboard(), parse_mode="HTML")
+    else:
+        sent = await bot.send_message(user_id, text, reply_markup=get_reveal_keyboard(), parse_mode="HTML")
+
+    await _track_and_trim(state, user_id, sent.message_id, keep=1)
+    return sent
+
+
+async def auto_cleanup_loop():
+    """Har 15 soniyada barcha faol o'yinchilar uchun eski bot xabarlarini tozalaydi"""
+    while True:
+        try:
+            users = await user_db.get_all_users()
+            for user in users:
+                user_id = user['user_id']
+                state_key = StorageKey(bot_id=bot.id, chat_id=user_id, user_id=user_id)
+                fsm = FSMContext(storage=storage, key=state_key)
+                current_state = await fsm.get_state()
+                if current_state in (GameModeState.playing, AutoPlayState.playing):
+                    data = await fsm.get_data()
+                    ids = data.get('bot_msg_ids', [])
+                    if len(ids) > 1:
+                        # Oxirgi savol xabaridan tashqari hammasini o'chiramiz
+                        keep_last = ids[-1]
+                        for old_id in ids[:-1]:
+                            try:
+                                await bot.delete_message(user_id, old_id)
+                            except Exception:
+                                pass
+                        await fsm.update_data(bot_msg_ids=[keep_last])
+        except Exception as e:
+            print(f"❌ auto_cleanup_loop xatosi: {e}")
+        await asyncio.sleep(15)
+
+
 async def _pick_word_for_mode(user_id: int, mode: str, topic=None, section=None):
     """Berilgan rejim bo'yicha bitta so'z tanlash"""
     if mode == 'star':
@@ -684,7 +861,7 @@ async def game_general_direction_selected(callback: CallbackQuery, state: FSMCon
         await callback.message.delete()
     except Exception:
         pass
-    await callback.message.answer(text, reply_markup=get_game_reply_keyboard(), parse_mode="HTML")
+    await send_question_message(callback.message, state, user_id, text, setup_reply_kb=True)
     await callback.answer()
 
 
@@ -733,7 +910,7 @@ async def game_star_direction_selected(callback: CallbackQuery, state: FSMContex
         await callback.message.delete()
     except Exception:
         pass
-    await callback.message.answer(text, reply_markup=get_game_reply_keyboard(), parse_mode="HTML")
+    await send_question_message(callback.message, state, user_id, text, setup_reply_kb=True)
     await callback.answer()
 
 
@@ -783,7 +960,7 @@ async def game_unknown_direction_selected(callback: CallbackQuery, state: FSMCon
         await callback.message.delete()
     except Exception:
         pass
-    await callback.message.answer(text, reply_markup=get_game_reply_keyboard(), parse_mode="HTML")
+    await send_question_message(callback.message, state, user_id, text, setup_reply_kb=True)
     await callback.answer()
 
 
@@ -903,7 +1080,7 @@ async def game_custom_direction_selected(callback: CallbackQuery, state: FSMCont
         await callback.message.delete()
     except Exception:
         pass
-    await callback.message.answer(text, reply_markup=get_game_reply_keyboard(), parse_mode="HTML")
+    await send_question_message(callback.message, state, user_id, text, setup_reply_kb=True)
     await callback.answer()
 
 
@@ -971,13 +1148,33 @@ async def _send_next_game_word(message: Message, state: FSMContext, user_id: int
 
     if mode == 'unknown':
         unknown_queue = data.get('unknown_queue', [])
-        idx = data.get('unknown_index', 0) + 1
-        if idx < len(unknown_queue):
-            next_word = unknown_queue[idx]
-            await state.update_data(unknown_index=idx)
+        idx = data.get('unknown_index', 0)
+
+        # ✅ YANGI: Bilaman bosilsa, shu so'zni ** ro'yxatidan o'chiramiz
+        if knew:
+            current_word = data.get('current_word', {})
+            dict_handler.mark_as_known(
+                user_id,
+                current_word.get('original_korean', current_word.get('korean', '')),
+                current_word.get('original_uzbek', current_word.get('uzbek', '')),
+                current_word.get('topic', ''),
+                current_word.get('section', ''),
+                current_word.get('chapter', '')
+            )
+            # Queue'dan ham o'chiramiz
+            unknown_queue = [w for i, w in enumerate(unknown_queue) if i != idx]
+            status = "✅ Bildingiz! Bilmaydiganlar ro'yxatidan o'chirildi 🗑"
+
+        # Keyingi so'zni aniqlash
+        # knew bo'lsa idx o'zida qoladi (chunk siljidi), bilmasa idx+1
+        next_idx = idx if knew else idx + 1
+
+        if unknown_queue and next_idx < len(unknown_queue):
+            next_word = unknown_queue[next_idx]
+            await state.update_data(unknown_queue=unknown_queue, unknown_index=next_idx)
             extra_info = f"/{len(unknown_queue)}"
         else:
-            # Navbat tugadi - bazadan yangilab qayta boshidan boshlaymiz
+            # Navbat tugadi - bazadan yangilab qayta boshlaymiz
             fresh = dict_handler.get_unknown_words(user_id)
             if fresh:
                 next_word = fresh[0]
@@ -990,6 +1187,7 @@ async def _send_next_game_word(message: Message, state: FSMContext, user_id: int
                 )
                 await state.clear()
                 return
+
     elif mode == 'star':
         next_word = dict_handler.get_random_star_word(user_id)
     elif mode == 'custom':
@@ -1008,7 +1206,7 @@ async def _send_next_game_word(message: Message, state: FSMContext, user_id: int
     await state.update_data(current_word=next_word, start_time=datetime.now().timestamp(), question_count=q_count)
 
     text = f"{status}\n\n━━━━━━━━━━━━━━\n\n" + _build_question_text(next_word, direction, q_count, mode, extra_info)
-    await message.answer(text, reply_markup=get_game_reply_keyboard(), parse_mode="HTML")
+    await send_question_message(message, state, user_id, text)
 
 
 # ============================================
@@ -1103,7 +1301,7 @@ async def auto_general_direction_selected(callback: CallbackQuery, state: FSMCon
         await callback.message.delete()
     except Exception:
         pass
-    await callback.message.answer(text, reply_markup=get_game_reply_keyboard(), parse_mode="HTML")
+    await send_question_message(callback.message, state, user_id, text, setup_reply_kb=True)
     await callback.answer()
 
 
@@ -1158,7 +1356,7 @@ async def auto_star_direction_selected(callback: CallbackQuery, state: FSMContex
         await callback.message.delete()
     except Exception:
         pass
-    await callback.message.answer(text, reply_markup=get_game_reply_keyboard(), parse_mode="HTML")
+    await send_question_message(callback.message, state, user_id, text, setup_reply_kb=True)
     await callback.answer()
 
 
@@ -1250,7 +1448,7 @@ async def auto_custom_direction_selected(callback: CallbackQuery, state: FSMCont
         await callback.message.delete()
     except Exception:
         pass
-    await callback.message.answer(text, reply_markup=get_game_reply_keyboard(), parse_mode="HTML")
+    await send_question_message(callback.message, state, user_id, text, setup_reply_kb=True)
     await callback.answer()
 
 
@@ -1351,7 +1549,7 @@ async def _send_next_auto_word(message: Message, state: FSMContext, user_id: int
     await state.update_data(current_word=next_word, auto_current_step=new_step)
 
     text = f"{status}\n\n━━━━━━━━━━━━━━\n\n" + _build_question_text(next_word, direction, new_step, mode if mode != 'auto_star' else 'star', extra_info="/10")
-    await message.answer(text, reply_markup=get_game_reply_keyboard(), parse_mode="HTML")
+    await send_question_message(message, state, user_id, text)
 
 
 # ============================================
@@ -1394,10 +1592,11 @@ async def send_auto_words():
                                 + _build_question_text(word, direction, 1, mode if mode != 'auto_star' else 'star', extra_info="/10")
                             )
                             try:
-                                await bot.send_message(
+                                sent = await bot.send_message(
                                     user_id, text, parse_mode="HTML",
-                                    reply_markup=get_game_reply_keyboard()
+                                    reply_markup=get_reveal_keyboard()
                                 )
+                                await _track_and_trim(fsm, user_id, sent.message_id, keep=1)
                             except Exception as send_err:
                                 print(f"⚠️ send_auto_words: foydalanuvchiga yuborib bo'lmadi {user_id}: {send_err}")
         except Exception as e:
@@ -1745,11 +1944,15 @@ async def exam_mode_selected(callback: CallbackQuery, state: FSMContext):
         section_korean = section_map.get(section, section)
         location = f"{topic} › {section_korean}"
 
+        topic_num = topic.replace('-topik', '')
+        address_part = f"{topic_num}{section_korean}"
+
         if mode == "both":
-            filepath = create_exam_word_bilingual(words, location=location)
+            filename_prefix = f"{address_part}_ikki-tilda"
+            filepath = create_exam_word_bilingual(words, location=location, filename_prefix=filename_prefix)
             mode_text = "🇰🇷 한국어 + 🇺🇿 O'zbekcha"
         else:
-            filename_prefix = f"{'ko-uz' if mode == 'kr_to_uz' else 'uz-ko'}_{topic.replace('/', '-')}_{section}"
+            filename_prefix = f"{address_part}_{'ko-uz' if mode == 'kr_to_uz' else 'uz-ko'}"
             filepath = create_exam_word(words, location=location, mode=mode, filename_prefix=filename_prefix)
             mode_text = "🇰🇷 ➔ 🇺🇿" if mode == "kr_to_uz" else "🇺🇿 ➔ 🇰🇷"
 
@@ -1846,11 +2049,12 @@ async def exam_star_direction_handler(callback: CallbackQuery):
 
     try:
         if direction == "both":
-            filepath = create_exam_word_bilingual(words_list, location=location)
+            filename_prefix = "yulduzli-sozlar_ikki-tilda"
+            filepath = create_exam_word_bilingual(words_list, location=location, filename_prefix=filename_prefix)
             mode_text = "🇰🇷 + 🇺🇿 (Ikki tilda)"
         else:
             mode = "kr_to_uz" if direction == "ko_uz" else "uz_to_kr"
-            filename_prefix = f"starred_{'ko_uz' if mode == 'kr_to_uz' else 'uz_ko'}_{user_id}"
+            filename_prefix = f"yulduzli-sozlar_{'ko-uz' if mode == 'kr_to_uz' else 'uz-ko'}"
             filepath = create_exam_word(words_list, location=location, mode=mode, filename_prefix=filename_prefix)
             mode_text = "🇰🇷 Ko → 🇺🇿 Uz" if mode == "kr_to_uz" else "🇺🇿 Uz → 🇰🇷 Ko"
 
@@ -1916,7 +2120,7 @@ async def download_all_words(callback: CallbackQuery, state: FSMContext):
             all_words = [(w['korean'], w['uzbek']) for w in all_words_data]
             filepath = create_exam_word(
                 all_words, location="📚 Barcha so'zlar", mode="kr_to_uz",
-                filename_prefix=f"lugat_ko_uz_{user_id}"
+                filename_prefix="barcha-sozlar_ko-uz"
             )
             file = FSInputFile(filepath)
             await callback.message.answer_document(
@@ -1930,7 +2134,7 @@ async def download_all_words(callback: CallbackQuery, state: FSMContext):
             all_words = [(w['korean'], w['uzbek']) for w in all_words_data]
             filepath = create_exam_word(
                 all_words, location="📚 Barcha so'zlar", mode="uz_to_kr",
-                filename_prefix=f"lugat_uz_ko_{user_id}"
+                filename_prefix="barcha-sozlar_uz-ko"
             )
             file = FSInputFile(filepath)
             await callback.message.answer_document(
@@ -1959,7 +2163,10 @@ async def download_all_words(callback: CallbackQuery, state: FSMContext):
 
         elif format_type == "word_both":
             all_words = [(w['korean'], w['uzbek']) for w in all_words_data]
-            filepath = create_exam_word_bilingual(all_words, location="📚 Barcha so'zlar")
+            filepath = create_exam_word_bilingual(
+                all_words, location="📚 Barcha so'zlar",
+                filename_prefix="barcha-sozlar_ikki-tilda"
+            )
             file = FSInputFile(filepath)
             await callback.message.answer_document(
                 document=file,
@@ -2018,7 +2225,7 @@ async def send_auto_exam():
             for idx, group in enumerate(groups, 1):
                 filepath = create_exam_word(
                     group, location="📚 Auto Exam", mode="kr_to_uz",
-                    filename_prefix=f"auto_exam_{user_id}_{idx}"
+                    filename_prefix=f"kunlik-imtihon_{idx}-qism"
                 )
                 file = FSInputFile(filepath)
                 await bot.send_document(user_id, document=file, caption=f"📝 옵션 {idx}: {len(group)}개 단어")
@@ -2079,6 +2286,7 @@ async def main():
         await bot.set_my_commands(commands, scope=BotCommandScopeDefault())
 
         asyncio.create_task(send_auto_words())
+        asyncio.create_task(auto_cleanup_loop())
 
         await bot.delete_webhook(drop_pending_updates=True)
 
