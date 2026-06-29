@@ -9,7 +9,7 @@ import os
 # ============================================
 # BOT TOKEN
 # ============================================
-TOKEN = os.getenv("BOT_TOKEN", "8046756811:AAEsMXNBMkIMkqM3XtVyQ3OzOd4itRfn03M")
+TOKEN = os.getenv("BOT_TOKEN", "8046756811:AAG7GOZleyqcsMXhv4__uFHWDhzPtYJMV8U")
 
 # ============================================
 # ADMIN ID

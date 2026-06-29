@@ -1,5 +1,5 @@
 # Bot Configuration
-BOT_TOKEN = "8438341822:AAFTrdSDXv8aUOfUm2Q1Wd1d30KFy7rbd14"
+BOT_TOKEN = "8438341822:AAH9KbeVv4NLmx7W6hPIVxIaX1LDfAUHlZ8"
 
 # Database path
 import os
