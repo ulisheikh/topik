@@ -29,8 +29,13 @@ from database.db import UserDatabase
 from utils.db_handler import DictionaryHandler
 from utils.exam_generator import create_exam_word, split_words_into_groups, create_exam_word_bilingual
 from utils.exam_keyboards import get_exam_main_keyboard, get_exam_star_direction_keyboard
+#--------token----------
+from pathlib import Path
+import sys
 
-from config import BOT_TOKEN, DICTIONARY_BASE_PATH, USER_DB_PATH, EXAM_AUTO_TIME, EXAM_WORDS_PER_FILE
+sys.path.append(str(Path(__file__).resolve().parent.parent))
+from bot_tokens import MEMO_BOT_TOKEN
+from config import  DICTIONARY_BASE_PATH, USER_DB_PATH, EXAM_AUTO_TIME, EXAM_WORDS_PER_FILE
 
 # ADMIN_PASSWORD config faylida ikki xil nom bilan bo'lishi mumkin - ikkisini ham qo'llab-quvvatlaymiz
 try:
@@ -62,7 +67,7 @@ class AdminState(StatesGroup):
 
 # ==================== BOT VA ROUTER ====================
 
-bot = Bot(token=BOT_TOKEN)
+bot = Bot(token=MEMO_BOT_TOKEN)
 storage = MemoryStorage()
 dp = Dispatcher(storage=storage)
 router = Router()

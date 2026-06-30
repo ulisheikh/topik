@@ -32,8 +32,12 @@ from utils.inline_keyboards import (
     get_question_actions_inline
 )
 
-# BOT YARATISH
-bot = telebot.TeleBot(TOKEN)
+from pathlib import Path
+import sys
+
+sys.path.append(str(Path(__file__).resolve().parent.parent))
+from bot_tokens import DICT_BOT_TOKEN
+bot = telebot.TeleBot(DICT_BOT_TOKEN)
 
 # USER CONTEXT
 user_context = {}
