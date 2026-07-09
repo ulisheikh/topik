@@ -20,7 +20,7 @@ AUTO_MODE_WORDS_MAX = 15  # Maksimal so'zlar soni
 
 # EXAM TIZIMI
 EXAM_AUTO_TIME = "05:00"  # Soat 05:00
-EXAM_WORDS_PER_FILE = 24  # Har bir listda 24 ta so'z (qator balandligi shu songa qarab hisoblab, A5 balandligini to'liq to'ldiradi)
+EXAM_WORDS_PER_FILE = 25  # Har bir listda 25 ta so'z (qator balandligi shu songa qarab hisoblab, A5 balandligini to'liq to'ldiradi)
 TEMP_DIR = "temp"  # Vaqtinchalik fayllar
 
 # ============================================
