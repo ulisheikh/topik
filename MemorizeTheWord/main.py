@@ -27,7 +27,7 @@ from typing import Callable, Dict, Any, Awaitable
 
 from database.db import UserDatabase
 from utils.db_handler import DictionaryHandler
-from utils.exam_generator import create_exam_word, split_words_into_groups, create_exam_word_bilingual
+from utils.exam_generator import create_exam_pdf, split_words_into_groups, create_exam_pdf_bilingual
 from utils.exam_keyboards import get_exam_main_keyboard, get_exam_star_direction_keyboard
 #--------token----------
 from pathlib import Path
@@ -143,12 +143,12 @@ ALL_TEXTS = {
             "<b>📂 /bo'limlar — BO'LIMLAR:</b>\n"
             "Topik → Bo'lim → Savol bo'yicha so'zlarni ko'rish\n\n"
             "<b>📄 /exam_doc — IMTIHON FAYLI:</b>\n"
-            "So'zlaringizdan Word formatida imtihon varaqasi yaratadi\n"
+            "So'zlaringizdan PDF formatida imtihon varaqasi yaratadi\n"
             "Har bir so'z uchun 4 ta variant (test shaklida)\n\n"
             "<b>📥 /download_words — LUG'ATNI YUKLAB OLISH:</b>\n"
-            "• Word (한국어 → O'zbekcha)\n"
-            "• Word (O'zbekcha → 한국어)\n"
-            "• Word (ikki tilda birga)\n"
+            "• PDF (한국어 → O'zbekcha)\n"
+            "• PDF (O'zbekcha → 한국어)\n"
+            "• PDF (ikki tilda birga)\n"
             "• JSON format\n\n"
             "<b>📊 Statistika:</b>\n"
             "Asosiy menyu → Statistika tugmasidan ko'rasiz\n"
@@ -242,12 +242,12 @@ ALL_TEXTS = {
             "<b>📂 /bo'limlar — 섹션:</b>\n"
             "토픽 → 섹션 → 문항별 단어 보기\n\n"
             "<b>📄 /exam_doc — 시험 파일:</b>\n"
-            "Word 형식으로 시험지 생성\n"
+            "PDF 형식으로 시험지 생성\n"
             "각 단어마다 4개 선택지\n\n"
             "<b>📥 /download_words — 사전 다운로드:</b>\n"
-            "• Word (한국어 → 우즈베크어)\n"
-            "• Word (우즈베크어 → 한국어)\n"
-            "• Word (두 언어 함께)\n"
+            "• PDF (한국어 → 우즈베크어)\n"
+            "• PDF (우즈베크어 → 한국어)\n"
+            "• PDF (두 언어 함께)\n"
             "• JSON 형식\n\n"
             "<b>📊 통계:</b>\n"
             "메인 메뉴 → 통계 버튼에서 확인\n"
@@ -447,10 +447,10 @@ async def cmd_download_words(message: Message, state: FSMContext):
         await message.answer("❌ Sizda hali so'zlar yo'q!")
         return
     keyboard = InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="📄 Word (한국어→우즈베크어)", callback_data="download_all:word_ko_uz")],
-        [InlineKeyboardButton(text="📄 Word (우즈베크어→한국어)", callback_data="download_all:word_uz_ko")],
+        [InlineKeyboardButton(text="📄 PDF (한국어→우즈베크어)", callback_data="download_all:pdf_ko_uz")],
+        [InlineKeyboardButton(text="📄 PDF (우즈베크어→한국어)", callback_data="download_all:pdf_uz_ko")],
         [InlineKeyboardButton(text="📋 JSON File", callback_data="download_all:json")],
-        [InlineKeyboardButton(text="📄 Word (🇰🇷 + 🇺🇿 tarjima bilan)", callback_data="download_all:word_both")],
+        [InlineKeyboardButton(text="📄 PDF (🇰🇷 + 🇺🇿 tarjima bilan)", callback_data="download_all:pdf_both")],
         [InlineKeyboardButton(text="◀️ Bekor qilish", callback_data="cancel_download")]
     ])
     await message.answer(
@@ -1913,7 +1913,7 @@ async def exam_section_selected(callback: CallbackQuery, state: FSMContext):
 
 @router.callback_query(F.data.startswith("exam_mode:"))
 async def exam_mode_selected(callback: CallbackQuery, state: FSMContext):
-    """Yo'nalish tanlandi - fayl yaratamiz va yuboramiz"""
+    """Yo'nalish tanlandi - PDF fayl yaratamiz va yuboramiz"""
     mode = callback.data.split(":")[1]
     data = await state.get_data()
     topic = data.get('exam_topic')
@@ -1954,11 +1954,11 @@ async def exam_mode_selected(callback: CallbackQuery, state: FSMContext):
 
         if mode == "both":
             filename_prefix = f"{address_part}_ikki-tilda"
-            filepath = create_exam_word_bilingual(words, location=location, filename_prefix=filename_prefix)
+            filepath = create_exam_pdf_bilingual(words, location=location, filename_prefix=filename_prefix)
             mode_text = "🇰🇷 한국어 + 🇺🇿 O'zbekcha"
         else:
             filename_prefix = f"{address_part}_{'ko-uz' if mode == 'kr_to_uz' else 'uz-ko'}"
-            filepath = create_exam_word(words, location=location, mode=mode, filename_prefix=filename_prefix)
+            filepath = create_exam_pdf(words, location=location, mode=mode, filename_prefix=filename_prefix)
             mode_text = "🇰🇷 ➔ 🇺🇿" if mode == "kr_to_uz" else "🇺🇿 ➔ 🇰🇷"
 
         file = FSInputFile(filepath)
@@ -2035,7 +2035,7 @@ async def exam_star_handler(callback: CallbackQuery):
 
 @router.callback_query(F.data.startswith("exam_star_"))
 async def exam_star_direction_handler(callback: CallbackQuery):
-    """Yulduzli so'zlar .docx yaratish - uchta variant: uz_ko, ko_uz, both"""
+    """Yulduzli so'zlar PDF yaratish - uchta variant: uz_ko, ko_uz, both"""
     user_id = callback.from_user.id
     direction = callback.data.replace("exam_star_", "")
 
@@ -2050,17 +2050,17 @@ async def exam_star_direction_handler(callback: CallbackQuery):
         return
 
     words_list = [(w['korean'], w['uzbek']) for w in star_words]
-    location = f"⭐ Yulduzli so'zlar ({len(words_list)} ta)"
+    location = f"Yulduzli so'zlar ({len(words_list)} ta)"
 
     try:
         if direction == "both":
             filename_prefix = "yulduzli-sozlar_ikki-tilda"
-            filepath = create_exam_word_bilingual(words_list, location=location, filename_prefix=filename_prefix)
+            filepath = create_exam_pdf_bilingual(words_list, location=location, filename_prefix=filename_prefix)
             mode_text = "🇰🇷 + 🇺🇿 (Ikki tilda)"
         else:
             mode = "kr_to_uz" if direction == "ko_uz" else "uz_to_kr"
             filename_prefix = f"yulduzli-sozlar_{'ko-uz' if mode == 'kr_to_uz' else 'uz-ko'}"
-            filepath = create_exam_word(words_list, location=location, mode=mode, filename_prefix=filename_prefix)
+            filepath = create_exam_pdf(words_list, location=location, mode=mode, filename_prefix=filename_prefix)
             mode_text = "🇰🇷 Ko → 🇺🇿 Uz" if mode == "kr_to_uz" else "🇺🇿 Uz → 🇰🇷 Ko"
 
         doc_file = FSInputFile(filepath)
@@ -2121,10 +2121,10 @@ async def download_all_words(callback: CallbackQuery, state: FSMContext):
             await callback.message.edit_text("❌ So'zlar topilmadi!\n\nIltimos avval /game orqali so'z qo'shing.")
             return
 
-        if format_type == "word_ko_uz":
+        if format_type == "pdf_ko_uz":
             all_words = [(w['korean'], w['uzbek']) for w in all_words_data]
-            filepath = create_exam_word(
-                all_words, location="📚 Barcha so'zlar", mode="kr_to_uz",
+            filepath = create_exam_pdf(
+                all_words, location="Barcha so'zlar", mode="kr_to_uz",
                 filename_prefix="barcha-sozlar_ko-uz"
             )
             file = FSInputFile(filepath)
@@ -2135,10 +2135,10 @@ async def download_all_words(callback: CallbackQuery, state: FSMContext):
             if os.path.exists(filepath):
                 os.remove(filepath)
 
-        elif format_type == "word_uz_ko":
+        elif format_type == "pdf_uz_ko":
             all_words = [(w['korean'], w['uzbek']) for w in all_words_data]
-            filepath = create_exam_word(
-                all_words, location="📚 Barcha so'zlar", mode="uz_to_kr",
+            filepath = create_exam_pdf(
+                all_words, location="Barcha so'zlar", mode="uz_to_kr",
                 filename_prefix="barcha-sozlar_uz-ko"
             )
             file = FSInputFile(filepath)
@@ -2166,10 +2166,10 @@ async def download_all_words(callback: CallbackQuery, state: FSMContext):
             if os.path.exists(filepath):
                 os.remove(filepath)
 
-        elif format_type == "word_both":
+        elif format_type == "pdf_both":
             all_words = [(w['korean'], w['uzbek']) for w in all_words_data]
-            filepath = create_exam_word_bilingual(
-                all_words, location="📚 Barcha so'zlar",
+            filepath = create_exam_pdf_bilingual(
+                all_words, location="Barcha so'zlar",
                 filename_prefix="barcha-sozlar_ikki-tilda"
             )
             file = FSInputFile(filepath)
@@ -2227,15 +2227,14 @@ async def send_auto_exam():
         msg = f"📚 시험 시간!\n\n✅ 새 단어: {len(all_words)}개\n📄 옵션: {len(groups)}개\n\n"
         try:
             await bot.send_message(user_id, msg)
-            for idx, group in enumerate(groups, 1):
-                filepath = create_exam_word(
-                    group, location="📚 Auto Exam", mode="kr_to_uz",
-                    filename_prefix=f"kunlik-imtihon_{idx}-qism"
-                )
-                file = FSInputFile(filepath)
-                await bot.send_document(user_id, document=file, caption=f"📝 옵션 {idx}: {len(group)}개 단어")
-                if os.path.exists(filepath):
-                    os.remove(filepath)
+            filepath = create_exam_pdf(
+                all_words, location="Auto Exam", mode="kr_to_uz",
+                filename_prefix=f"kunlik-imtihon_{datetime.now().strftime('%Y%m%d')}"
+            )
+            file = FSInputFile(filepath)
+            await bot.send_document(user_id, document=file, caption=f"📝 {len(all_words)}개 단어")
+            if os.path.exists(filepath):
+                os.remove(filepath)
         except Exception as e:
             print(f"Auto exam error for {user_id}: {e}")
 
