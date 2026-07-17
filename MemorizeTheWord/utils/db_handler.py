@@ -26,27 +26,25 @@ class DictionaryHandler:
         except:
             return {}
 
-    def get_random_word(self, user_id, topic=None, section=None):
-        """Tasodifiy so'z olish (AVTO VA ODDIY O'YIN UCHUN)"""
+    def get_words_pool(self, user_id, topic=None, section=None):
+        """Berilgan mezonlarga mos BARCHA so'zlar ro'yxati (random EMAS - to'liq ro'yxat).
+        Ketma-ket (shuffle qilingan holda takrorlanmaydigan) tanlash uchun ishlatiladi."""
         data = self.load_user_data(user_id)
         all_eligible_words = []
 
-        # Ma'lumotlarni qidirish va yig'ish
         for t_key, sections in data.items():
-            # Agar muayyan topik tanlangan bo'lsa
             if topic:
                 target_t_key = f"Topik-{topic.replace('-topik', '')}"
                 if t_key != target_t_key:
                     continue
 
             for s_key, chapters in sections.items():
-                # Agar muayyan bo'lim tanlangan bo'lsa
                 if section and s_key != section:
                     continue
 
                 for c_key, word_dict in chapters.items():
                     chapter_display = c_key.replace("-savol so'zlari", "") + "-savol"
-                    
+
                     for korean, uzbek in word_dict.items():
                         all_eligible_words.append({
                             'korean': korean,
@@ -56,10 +54,13 @@ class DictionaryHandler:
                             'chapter': chapter_display
                         })
 
+        return all_eligible_words
+
+    def get_random_word(self, user_id, topic=None, section=None):
+        """Tasodifiy so'z olish (AVTO VA ODDIY O'YIN UCHUN)"""
+        all_eligible_words = self.get_words_pool(user_id, topic=topic, section=section)
         if not all_eligible_words:
             return None
-
-        # Tasodifiy bitta so'zni tanlab qaytarish
         return random.choice(all_eligible_words)
     
     def get_all_words(self, user_id):

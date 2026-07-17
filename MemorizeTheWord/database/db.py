@@ -202,6 +202,15 @@ class UserDatabase:
                 await db.execute('UPDATE statistics SET wrong_answers = wrong_answers + 1, active_time = active_time + ? WHERE user_id = ?', (time_spent, user_id))
             await db.commit()
 
+    async def reset_statistics(self, user_id: int):
+        """To'g'ri/Noto'g'ri hisoblagichlarni 0'ga tushirish (bitta to'liq bosqich/sikl tugaganda chaqiriladi)"""
+        async with aiosqlite.connect(self.db_path) as db:
+            await db.execute(
+                'UPDATE statistics SET correct_answers = 0, wrong_answers = 0 WHERE user_id = ?',
+                (user_id,)
+            )
+            await db.commit()
+
     async def get_statistics(self, user_id: int) -> dict:
         """Foydalanuvchi statistikasini olish"""
         async with aiosqlite.connect(self.db_path) as db:

@@ -314,6 +314,61 @@ def get_next_word(user_id: int):
     return word if word else random.choice(all_words)
 
 
+# ==================== KETMA-KET (TAKRORLANMAYDIGAN) SO'Z TANLASH ====================
+#
+# /game va /avtogame uchun umumiy mexanizm:
+# - Har bir mos so'zlar ro'yxati (umumiy / belgilangan / yulduzli) bir marta
+#   ARALASHTIRILADI (shuffle) va navbat bilan (ketma-ket) beriladi.
+# - Ro'yxat oxiriga yetganda (bitta to'liq bosqich/sikl tugagach), ro'yxat
+#   qayta aralashtiriladi va navbat yana boshidan boshlanadi.
+# - "Bilmaydigan so'zlar" rejimi bunga kirmaydi - u alohida (unknown_queue) mantiq bilan ishlaydi.
+#
+
+def _build_sequential_pool(user_id: int, mode: str, topic=None, section=None):
+    """Berilgan mezon uchun to'liq so'zlar ro'yxatini olib, aralashtirib qaytaradi"""
+    if mode == 'star':
+        pool = list(dict_handler.get_star_words(user_id))
+    else:
+        pool = list(dict_handler.get_words_pool(user_id, topic=topic, section=section))
+    random.shuffle(pool)
+    return pool
+
+
+async def get_next_sequential_word(state: FSMContext, user_id: int, mode: str, topic=None, section=None):
+    """
+    Ketma-ket (random emas) so'z olish - FSM state ichida navbat (queue) saqlanadi.
+    Qaytaradi: (word_or_None, cycle_completed: bool)
+    cycle_completed=True bo'lsa - demak ro'yxat bir marta to'liq aylanib, qayta aralashtirildi.
+    """
+    data = await state.get_data()
+    pool_key = f"{mode}:{topic}:{section}"
+
+    queue = data.get('seq_queue')
+    idx = data.get('seq_idx', 0)
+    stored_key = data.get('seq_key')
+    cycle_completed = False
+
+    need_rebuild = (not queue) or (stored_key != pool_key) or (idx >= len(queue))
+    if need_rebuild:
+        # Agar avval xuddi shu mezon bo'yicha ro'yxat to'liq tugagan bo'lsa - bu "sikl tugadi" degani
+        if stored_key == pool_key and queue and idx >= len(queue):
+            cycle_completed = True
+        queue = _build_sequential_pool(user_id, mode, topic, section)
+        idx = 0
+
+    if not queue:
+        await state.update_data(seq_queue=[], seq_idx=0, seq_key=pool_key)
+        return None, False
+
+    word = queue[idx]
+    idx += 1
+    await state.update_data(seq_queue=queue, seq_idx=idx, seq_key=pool_key)
+    return word, cycle_completed
+
+
+CYCLE_RESET_NOTE = "\n🔄 Ro'yxat bir marta aylandi - so'zlar qayta aralashtirildi, statistika 0'dan boshlandi!"
+
+
 # ==================== KEYBOARDS ====================
 
 def get_main_keyboard(lang: str) -> ReplyKeyboardMarkup:
@@ -447,10 +502,10 @@ async def cmd_download_words(message: Message, state: FSMContext):
         await message.answer("❌ Sizda hali so'zlar yo'q!")
         return
     keyboard = InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="📄 PDF (한국어→우즈베크어)", callback_data="download_all:pdf_ko_uz")],
-        [InlineKeyboardButton(text="📄 PDF (우즈베크어→한국어)", callback_data="download_all:pdf_uz_ko")],
+        [InlineKeyboardButton(text="📄 PDF (한국어→우즈베크어)", callback_data="download_all:word_ko_uz")],
+        [InlineKeyboardButton(text="📄 PDF (우즈베크어→한국어)", callback_data="download_all:word_uz_ko")],
         [InlineKeyboardButton(text="📋 JSON File", callback_data="download_all:json")],
-        [InlineKeyboardButton(text="📄 PDF (🇰🇷 + 🇺🇿 tarjima bilan)", callback_data="download_all:pdf_both")],
+        [InlineKeyboardButton(text="📄 PDF (🇰🇷 + 🇺🇿 tarjima bilan)", callback_data="download_all:word_both")],
         [InlineKeyboardButton(text="◀️ Bekor qilish", callback_data="cancel_download")]
     ])
     await message.answer(
@@ -849,7 +904,7 @@ async def game_general_direction_selected(callback: CallbackQuery, state: FSMCon
     lang = await user_db.get_language(user_id) or "uz"
     direction = callback.data.replace("game_dir_general_", "")
 
-    word = dict_handler.get_random_word(user_id)
+    word, _ = await get_next_sequential_word(state, user_id, 'general')
     if not word:
         await callback.answer(get_text(lang, "no_words"), show_alert=True)
         await state.clear()
@@ -898,7 +953,7 @@ async def game_star_direction_selected(callback: CallbackQuery, state: FSMContex
     lang = await user_db.get_language(user_id) or "uz"
     direction = callback.data.replace("game_dir_star_", "")
 
-    word = dict_handler.get_random_star_word(user_id)
+    word, _ = await get_next_sequential_word(state, user_id, 'star')
     if not word:
         await callback.answer(get_text(lang, "no_star_words"), show_alert=True)
         await state.clear()
@@ -1064,7 +1119,7 @@ async def game_custom_direction_selected(callback: CallbackQuery, state: FSMCont
     topic = data.get('selected_topic')
     section = data.get('selected_section')
 
-    word = dict_handler.get_random_word(user_id, topic=topic, section=section)
+    word, _ = await get_next_sequential_word(state, user_id, 'custom', topic=topic, section=section)
     if not word:
         await callback.answer(get_text(lang, "no_words"), show_alert=True)
         return
@@ -1150,6 +1205,7 @@ async def _send_next_game_word(message: Message, state: FSMContext, user_id: int
     status = "✅ Bildingiz!" if knew else "❌ Bilmaydiganlar ro'yxatiga qo'shildi!"
     extra_info = ""
     next_word = None
+    cycle_completed = False
 
     if mode == 'unknown':
         unknown_queue = data.get('unknown_queue', [])
@@ -1194,11 +1250,15 @@ async def _send_next_game_word(message: Message, state: FSMContext, user_id: int
                 return
 
     elif mode == 'star':
-        next_word = dict_handler.get_random_star_word(user_id)
+        next_word, cycle_completed = await get_next_sequential_word(state, user_id, 'star')
     elif mode == 'custom':
-        next_word = dict_handler.get_random_word(user_id, topic=data.get('topic'), section=data.get('section'))
+        next_word, cycle_completed = await get_next_sequential_word(state, user_id, 'custom', topic=data.get('topic'), section=data.get('section'))
     else:
-        next_word = dict_handler.get_random_word(user_id)
+        next_word, cycle_completed = await get_next_sequential_word(state, user_id, 'general')
+
+    if cycle_completed:
+        await user_db.reset_statistics(user_id)
+        status += CYCLE_RESET_NOTE
 
     if not next_word:
         await message.answer(
@@ -1285,7 +1345,7 @@ async def auto_general_direction_selected(callback: CallbackQuery, state: FSMCon
     data = await state.get_data()
     interval = data.get('auto_interval', 15)
 
-    word = dict_handler.get_random_word(user_id)
+    word, _ = await get_next_sequential_word(state, user_id, 'general')
     if not word:
         await callback.answer(get_text(lang, "no_words"), show_alert=True)
         return
@@ -1338,7 +1398,7 @@ async def auto_star_direction_selected(callback: CallbackQuery, state: FSMContex
     user_id = callback.from_user.id
     lang = await user_db.get_language(user_id) or "uz"
 
-    word = dict_handler.get_random_star_word(user_id)
+    word, _ = await get_next_sequential_word(state, user_id, 'star')
     if not word:
         await callback.answer(get_text(lang, "no_star_words"), show_alert=True)
         return
@@ -1432,7 +1492,7 @@ async def auto_custom_direction_selected(callback: CallbackQuery, state: FSMCont
     topic = data.get('topic')
     section = data.get('section')
 
-    word = dict_handler.get_random_word(user_id, topic=topic, section=section)
+    word, _ = await get_next_sequential_word(state, user_id, 'custom', topic=topic, section=section)
     if not word:
         await callback.answer(get_text(lang, "no_words"), show_alert=True)
         return
@@ -1542,9 +1602,13 @@ async def _send_next_auto_word(message: Message, state: FSMContext, user_id: int
         return
 
     if mode == 'auto_star':
-        next_word = dict_handler.get_random_star_word(user_id)
+        next_word, cycle_completed = await get_next_sequential_word(state, user_id, 'star')
     else:
-        next_word = dict_handler.get_random_word(user_id, topic=data.get('topic'), section=data.get('section'))
+        next_word, cycle_completed = await get_next_sequential_word(state, user_id, 'custom', topic=data.get('topic'), section=data.get('section'))
+
+    if cycle_completed:
+        await user_db.reset_statistics(user_id)
+        status += CYCLE_RESET_NOTE
 
     if not next_word:
         await message.answer(f"{status}\n\n🏁 So'zlar tugadi!", reply_markup=get_main_keyboard(lang), parse_mode="HTML")
@@ -1586,14 +1650,17 @@ async def send_auto_words():
                         mode = data.get('mode', 'general')
 
                         if mode == 'auto_star':
-                            word = dict_handler.get_random_star_word(user_id)
+                            word, cycle_completed = await get_next_sequential_word(fsm, user_id, 'star')
                         else:
-                            word = dict_handler.get_random_word(user_id, topic=data.get('topic'), section=data.get('section'))
+                            word, cycle_completed = await get_next_sequential_word(fsm, user_id, 'custom', topic=data.get('topic'), section=data.get('section'))
 
                         if word:
+                            if cycle_completed:
+                                await user_db.reset_statistics(user_id)
                             await fsm.update_data(current_word=word, last_auto_sent=now, auto_current_step=1)
+                            cycle_note = CYCLE_RESET_NOTE if cycle_completed else ""
                             text = (
-                                "⏰ <b>Vaqt keldi! Yangi 10 ta so'z:</b>\n\n"
+                                "⏰ <b>Vaqt keldi! Yangi 10 ta so'z:</b>" + cycle_note + "\n\n"
                                 + _build_question_text(word, direction, 1, mode if mode != 'auto_star' else 'star', extra_info="/10")
                             )
                             try:
@@ -1913,7 +1980,7 @@ async def exam_section_selected(callback: CallbackQuery, state: FSMContext):
 
 @router.callback_query(F.data.startswith("exam_mode:"))
 async def exam_mode_selected(callback: CallbackQuery, state: FSMContext):
-    """Yo'nalish tanlandi - PDF fayl yaratamiz va yuboramiz"""
+    """Yo'nalish tanlandi - fayl yaratamiz va yuboramiz"""
     mode = callback.data.split(":")[1]
     data = await state.get_data()
     topic = data.get('exam_topic')
@@ -2035,7 +2102,7 @@ async def exam_star_handler(callback: CallbackQuery):
 
 @router.callback_query(F.data.startswith("exam_star_"))
 async def exam_star_direction_handler(callback: CallbackQuery):
-    """Yulduzli so'zlar PDF yaratish - uchta variant: uz_ko, ko_uz, both"""
+    """Yulduzli so'zlar .pdf yaratish - uchta variant: uz_ko, ko_uz, both"""
     user_id = callback.from_user.id
     direction = callback.data.replace("exam_star_", "")
 
@@ -2050,7 +2117,7 @@ async def exam_star_direction_handler(callback: CallbackQuery):
         return
 
     words_list = [(w['korean'], w['uzbek']) for w in star_words]
-    location = f"Yulduzli so'zlar ({len(words_list)} ta)"
+    location = f"⭐ Yulduzli so'zlar ({len(words_list)} ta)"
 
     try:
         if direction == "both":
@@ -2121,10 +2188,10 @@ async def download_all_words(callback: CallbackQuery, state: FSMContext):
             await callback.message.edit_text("❌ So'zlar topilmadi!\n\nIltimos avval /game orqali so'z qo'shing.")
             return
 
-        if format_type == "pdf_ko_uz":
+        if format_type == "word_ko_uz":
             all_words = [(w['korean'], w['uzbek']) for w in all_words_data]
             filepath = create_exam_pdf(
-                all_words, location="Barcha so'zlar", mode="kr_to_uz",
+                all_words, location="📚 Barcha so'zlar", mode="kr_to_uz",
                 filename_prefix="barcha-sozlar_ko-uz"
             )
             file = FSInputFile(filepath)
@@ -2135,10 +2202,10 @@ async def download_all_words(callback: CallbackQuery, state: FSMContext):
             if os.path.exists(filepath):
                 os.remove(filepath)
 
-        elif format_type == "pdf_uz_ko":
+        elif format_type == "word_uz_ko":
             all_words = [(w['korean'], w['uzbek']) for w in all_words_data]
             filepath = create_exam_pdf(
-                all_words, location="Barcha so'zlar", mode="uz_to_kr",
+                all_words, location="📚 Barcha so'zlar", mode="uz_to_kr",
                 filename_prefix="barcha-sozlar_uz-ko"
             )
             file = FSInputFile(filepath)
@@ -2166,10 +2233,10 @@ async def download_all_words(callback: CallbackQuery, state: FSMContext):
             if os.path.exists(filepath):
                 os.remove(filepath)
 
-        elif format_type == "pdf_both":
+        elif format_type == "word_both":
             all_words = [(w['korean'], w['uzbek']) for w in all_words_data]
             filepath = create_exam_pdf_bilingual(
-                all_words, location="Barcha so'zlar",
+                all_words, location="📚 Barcha so'zlar",
                 filename_prefix="barcha-sozlar_ikki-tilda"
             )
             file = FSInputFile(filepath)
@@ -2227,14 +2294,15 @@ async def send_auto_exam():
         msg = f"📚 시험 시간!\n\n✅ 새 단어: {len(all_words)}개\n📄 옵션: {len(groups)}개\n\n"
         try:
             await bot.send_message(user_id, msg)
-            filepath = create_exam_pdf(
-                all_words, location="Auto Exam", mode="kr_to_uz",
-                filename_prefix=f"kunlik-imtihon_{datetime.now().strftime('%Y%m%d')}"
-            )
-            file = FSInputFile(filepath)
-            await bot.send_document(user_id, document=file, caption=f"📝 {len(all_words)}개 단어")
-            if os.path.exists(filepath):
-                os.remove(filepath)
+            for idx, group in enumerate(groups, 1):
+                filepath = create_exam_pdf(
+                    group, location="📚 Auto Exam", mode="kr_to_uz",
+                    filename_prefix=f"kunlik-imtihon_{idx}-qism"
+                )
+                file = FSInputFile(filepath)
+                await bot.send_document(user_id, document=file, caption=f"📝 옵션 {idx}: {len(group)}개 단어")
+                if os.path.exists(filepath):
+                    os.remove(filepath)
         except Exception as e:
             print(f"Auto exam error for {user_id}: {e}")
 
