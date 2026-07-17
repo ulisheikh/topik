@@ -582,6 +582,19 @@ async def cmd_help(message: Message):
     await message.answer(help_text, parse_mode="HTML")
 
 
+@router.message(Command("admin"))
+async def cmd_admin(message: Message, state: FSMContext):
+    """Yashirin komanda - Admin panelga kirish uchun parol so'raydi (tugmadan qat'i nazar)"""
+    user_id = message.from_user.id
+    lang = await user_db.get_language(user_id) or "uz"
+    is_admin = await user_db.is_admin(user_id)
+    if is_admin:
+        await message.answer(get_text(lang, "admin_welcome"), reply_markup=get_admin_keyboard(lang))
+        return
+    await message.answer(get_text(lang, "admin_enter_password"))
+    await state.set_state(AdminState.waiting_password)
+
+
 @router.message(Command("sozlamalar"))
 async def cmd_settings(message: Message):
     user_id = message.from_user.id
