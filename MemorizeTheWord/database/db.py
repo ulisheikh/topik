@@ -24,7 +24,8 @@ class UserDatabase:
             u.first_name,
             s.correct_answers,
             s.wrong_answers,
-            u.is_blocked
+            u.is_blocked,
+            s.active_time
         FROM users u
         LEFT JOIN statistics s ON u.user_id = s.user_id
         ORDER BY s.correct_answers DESC
@@ -43,6 +44,7 @@ class UserDatabase:
                 "correct": row[3] or 0,
                 "wrong": row[4] or 0,
                 "is_blocked": bool(row[5]),
+                "active_time": row[6] or 0,
             })
 
         return users
