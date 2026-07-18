@@ -1,8 +1,13 @@
 # -*- coding: utf-8 -*-
 """
 KOREAN-O'ZBEK LUG'AT BOT
-Yangilangan versiya - 2.0
+Yangilangan versiya - 2.1
 User-based tizim
+FIX: state (context) tekshiruvi endi eng birinchi bo'lib ishlaydi,
+     shuning uchun so'z qo'shish/o'chirish paytida qidiruv/tahrirlash
+     bilan aralashib ketmaydi.
+YANGI: "rmall" - joriy savoldagi barcha so'zlarni o'chirish
+YANGI: "*" - butun lug'atdan yulduzli (muhim) so'zlarni topish
 """
 
 import telebot
@@ -562,8 +567,9 @@ def callback_handler(call):
             section_display[section_type],
             question_num
         )
+        msg += "\n\n🗑 Barchasini o'chirish uchun: <code>rmall</code>"
         
-        bot.send_message(uid, msg)
+        bot.send_message(uid, msg, parse_mode='HTML')
         
         # Context saqlash
         user_context[uid] = {
@@ -935,154 +941,62 @@ def change_password_handlers(message):
         bot.reply_to(message, f"✅ {role.capitalize()} paroli muvaffaqiyatli o'zgartirildi: `{new_pwd}`", parse_mode="Markdown")
     else:
         bot.reply_to(message, "❌ Xatolik yuz berdi. passwords.json faylini tekshiring.")
+
+
 # ============================================
-# TEXT MESSAGE HANDLER (Context asosida)
-# ============================================
-# ============================================
-# TO'LIQ text_handler - YANGI s. VA = BILAN
-# main.py da 942-qatordan boshlab ALMASHTIRING
+# YULDUZLI SO'ZLAR (*) - butun lug'atdan qidirish
 # ============================================
 
-@bot.message_handler(func=lambda m: True, content_types=['text'])
-def text_handler(message):
-    """Barcha text xabarlar uchun"""
-    uid = message.from_user.id
-    text = message.text.strip()
+def handle_starred_words(uid):
+    """
+    Boshida '*' bo'lgan (muhim/yulduzli) so'zlarni butun
+    lug'atdan (barcha topik/bo'lim/savollardan) topib beradi.
+    """
+    data = load_user_data(uid)
+    results = []
     
-    # ============================================
-    # SO'Z QIDIRISH - oddiy matn yoki s.matn
-    # ============================================
-    # Agar = yo'q va / bilan boshlanmasa
-    if '=' not in text and not text.startswith('/') and len(text) >= 2:
-        # s. ni olib tashlash (agar bor bo'lsa)
-        search_word = text[2:].strip() if text.lower().startswith('s.') else text.strip()
+    for topic_key, topic_data in data.items():
+        if not topic_key.startswith("Topik-"):
+            continue
         
-        # Ma'lumotlarni yuklash
-        data = load_user_data(uid)
-        results = []
+        topic_num = topic_key.replace("Topik-", "")
         
-        # Barcha joylardan qidirish
-        for topic_key, topic_data in data.items():
-            if not topic_key.startswith("Topik-"):
-                continue
-            
-            topic_num = topic_key.replace("Topik-", "")
-            
-            for section_name, questions in topic_data.items():
-                for question_key, words in questions.items():
-                    question_num = question_key.replace("-savol so'zlari", "")
-                    
-                    # So'zlarni qidirish
-                    for korean, uzbek in words.items():
-                        if search_word.lower() in korean.lower() or search_word.lower() in uzbek.lower():
-                            results.append({
-                                'korean': korean,
-                                'uzbek': uzbek,
-                                'location': f"{topic_num}>{question_num}"
-                            })
-        
-        # Natijalarni ko'rsatish
-        if results:
-            msg = f"🔍 <b>{search_word}</b> ({len(results)} ta)\n\n"
-            
-            for idx, r in enumerate(results[:20], 1):
-                msg += f"{idx}. <b>{r['korean']}</b> → {r['uzbek']}\n"
-                msg += f"   📍 {r['location']}\n"
-            
-            if len(results) > 20:
-                msg += f"\n... va yana {len(results) - 20} ta"
-            
-            bot.send_message(uid, msg, parse_mode='HTML')
-            return
-        # Agar topilmasa - keyingi bloklarga o'tish
+        for section_name, questions in topic_data.items():
+            for question_key, words in questions.items():
+                question_num = question_key.replace("-savol so'zlari", "")
+                
+                for korean, uzbek in words.items():
+                    if korean.strip().startswith('*'):
+                        results.append({
+                            'korean': korean,
+                            'uzbek': uzbek,
+                            'location': f"{topic_num}>{question_num}"
+                        })
     
-    # ============================================
-    # SO'Z TAHRIRLASH - salom=안녕 yoki 안녕=salom
-    # ============================================
-    if '=' in text and len(text) > 3:
-        parts = text.split('=', 1)
+    if results:
+        msg = f"⭐ <b>Yulduzli so'zlar</b> ({len(results)} ta)\n\n"
         
-        if len(parts) == 2:
-            left = parts[0].strip()
-            right = parts[1].strip()
-            
-            if left and right:
-                # Ma'lumotlarni yuklash
-                data = load_user_data(uid)
-                
-                if not data:
-                    bot.send_message(uid, "❌ Lug'atingiz bo'sh!")
-                    return
-                
-                # Qidirish
-                found = []
-                
-                for topic_key, topic_data in data.items():
-                    if not topic_key.startswith("Topik-"):
-                        continue
-                    
-                    for section_name, questions in topic_data.items():
-                        for question_key, words in questions.items():
-                            for kr, uz in words.items():
-                                if left.lower() == kr.lower() or left.lower() == uz.lower():
-                                    found.append({
-                                        'topic_key': topic_key,
-                                        'section': section_name,
-                                        'question': question_key,
-                                        'old_kr': kr,
-                                        'old_uz': uz
-                                    })
-                
-                if not found:
-                    bot.send_message(uid, f"❌ <b>{left}</b> topilmadi", parse_mode='HTML')
-                    return
-                
-                if len(found) > 1:
-                    msg = f"❌ Ko'p natija: {len(found)} ta\n\n"
-                    msg += "Aniqroq kiriting yoki savol ichida tahrirlang"
-                    bot.send_message(uid, msg)
-                    return
-                
-                # Bitta natija - TAHRIRLASH
-                item = found[0]
-                
-                # Eski so'zni o'chirish
-                del data[item['topic_key']][item['section']][item['question']][item['old_kr']]
-                
-                # Yangi so'zni aniqlash
-                if is_korean(left):
-                    new_kr = left
-                    new_uz = right
-                elif is_korean(right):
-                    new_kr = right
-                    new_uz = left
-                else:
-                    # Ikkala tomon ham koreys emas
-                    new_kr = right if is_korean(item['old_kr']) else left
-                    new_uz = left if is_korean(item['old_kr']) else right
-                
-                # Yangi so'zni qo'shish
-                data[item['topic_key']][item['section']][item['question']][new_kr] = new_uz
-                
-                # Saqlash
-                save_user_data(uid, data)
-                
-                bot.send_message(
-                    uid,
-                    f"✅ Tahrirlandi!\n\n"
-                    f"<s>{item['old_kr']} → {item['old_uz']}</s>\n"
-                    f"<b>{new_kr} → {new_uz}</b>",
-                    parse_mode='HTML'
-                )
-                return
+        for idx, r in enumerate(results[:30], 1):
+            msg += f"{idx}. <b>{r['korean']}</b> → {r['uzbek']}\n"
+            msg += f"   📍 {r['location']}\n"
+        
+        if len(results) > 30:
+            msg += f"\n... va yana {len(results) - 30} ta"
+    else:
+        msg = "❌ Yulduzli so'zlar topilmadi"
     
-    # ============================================
-    # ACTION-GA BOG'LIQ HANDLERLAR
-    # ============================================
-    # Context borligini tekshirish
-    if uid not in user_context:
-        return
-    
+    bot.send_message(uid, msg, parse_mode='HTML')
+
+
+# ============================================
+# STATE (CONTEXT) GA BOG'LIQ AMALLAR
+# Bu funksiya endi text_handler ichida ENG BIRINCHI chaqiriladi,
+# shuning uchun qidiruv/tahrirlash bilan hech qachon aralashib
+# ketmaydi.
+# ============================================
+
+def handle_stateful_text(message, uid, text):
+    """User biror action (context) ichida bo'lganda ishlaydigan handler"""
     ctx = user_context[uid]
     action = ctx.get('action')
     
@@ -1255,7 +1169,7 @@ def text_handler(message):
         bot.send_message(uid, msg, parse_mode='HTML', reply_markup=markup)
     
     # ============================================
-    # SO'Z O'CHIRISH
+    # SO'Z O'CHIRISH (+ rmall = barchasini o'chirish)
     # ============================================
     elif action == 'remove_word':
         topic_num = ctx['topic']
@@ -1271,10 +1185,39 @@ def text_handler(message):
         
         if not (topic_key in data and section_name in data[topic_key] and question_key in data[topic_key][section_name]):
             bot.send_message(uid, "❌ So'zlar topilmadi!")
-            del user_context[uid]
             return
         
         all_words = data[topic_key][section_name][question_key]
+        section_display = {'r': 'Reading', 'w': 'Writing', 'l': 'Listening'}
+        
+        # ------------------------------------------------------
+        # RMALL: FAQAT joriy savol/bo'limdagi barcha so'zlarni o'chirish
+        # ------------------------------------------------------
+        if text.strip().lower() == 'rmall':
+            removed_count = len(all_words)
+            
+            if removed_count == 0:
+                bot.send_message(uid, "❌ Bu savolda so'zlar yo'q!")
+                return
+            
+            # Backup (tiklash uchun)
+            create_backup(uid, 'question_words', dict(all_words), f"{topic_num}_{section_type}_{question_num}")
+            
+            data[topic_key][section_name][question_key] = {}
+            save_user_data(uid, data)
+            
+            msg = f"📍 <b>{topic_num}-topik > {section_display[section_type]} > {question_num}-savol</b>\n"
+            msg += "━━━━━━━━━━━━━━━━━\n\n"
+            msg += f"🗑 <b>Barcha so'zlar o'chirildi! ({removed_count} ta)</b>\n\n"
+            msg += get_text(uid, 'words_empty')
+            
+            markup = get_question_actions_inline(topic_num, section_type, question_num, False, uid)
+            bot.send_message(uid, msg, parse_mode='HTML', reply_markup=markup)
+            return
+        
+        # ------------------------------------------------------
+        # ESKI FUNKSIYA: raqam yoki so'z bo'yicha o'chirish (o'zgarmagan)
+        # ------------------------------------------------------
         words_list = list(all_words.items())
         
         words_to_remove = [w.strip() for w in text.split(',')]
@@ -1322,8 +1265,6 @@ def text_handler(message):
         # Xabar
         remaining_words = data[topic_key][section_name][question_key]
         
-        section_display = {'r': 'Reading', 'w': 'Writing', 'l': 'Listening'}
-        
         msg = f"📍 <b>{topic_num}-topik > {section_display[section_type]} > {question_num}-savol</b>\n"
         msg += "━━━━━━━━━━━━━━━━━\n\n"
         
@@ -1349,6 +1290,165 @@ def text_handler(message):
         
         markup = get_question_actions_inline(topic_num, section_type, question_num, bool(remaining_words), uid)
         bot.send_message(uid, msg, parse_mode='HTML', reply_markup=markup)
+
+
+# ============================================
+# TEXT MESSAGE HANDLER (Context asosida)
+# ============================================
+
+@bot.message_handler(func=lambda m: True, content_types=['text'])
+def text_handler(message):
+    """Barcha text xabarlar uchun"""
+    uid = message.from_user.id
+    text = message.text.strip()
+    
+    # ============================================
+    # 1) STATE (CONTEXT) BOR-YO'QLIGINI TEKSHIRISH — ENG BIRINCHI!
+    # Muhim: agar user biror action ichida bo'lsa (so'z qo'shish,
+    # so'z o'chirish, topik yaratish/o'chirish va h.k.), o'sha action
+    # DARHOL bajariladi va pastdagi qidiruv/tahrirlash bloklariga
+    # umuman kirmaydi. Aynan shu joy bo'lmagani sababli oldin
+    # "so'z o'chirish" state'i qidiruv bilan aralashib ketardi.
+    # ============================================
+    if uid in user_context and user_context[uid].get('action'):
+        handle_stateful_text(message, uid, text)
+        return
+    
+    # ============================================
+    # 2) YULDUZLI SO'ZLAR: hohlagan joydan aynan "*" yuborilsa
+    # ============================================
+    if text == '*':
+        handle_starred_words(uid)
+        return
+    
+    # ============================================
+    # 3) SO'Z QIDIRISH - oddiy matn yoki s.matn
+    # ============================================
+    # Agar = yo'q va / bilan boshlanmasa
+    if '=' not in text and not text.startswith('/') and len(text) >= 2:
+        # s. ni olib tashlash (agar bor bo'lsa)
+        search_word = text[2:].strip() if text.lower().startswith('s.') else text.strip()
+        
+        # Ma'lumotlarni yuklash
+        data = load_user_data(uid)
+        results = []
+        
+        # Barcha joylardan qidirish
+        for topic_key, topic_data in data.items():
+            if not topic_key.startswith("Topik-"):
+                continue
+            
+            topic_num = topic_key.replace("Topik-", "")
+            
+            for section_name, questions in topic_data.items():
+                for question_key, words in questions.items():
+                    question_num = question_key.replace("-savol so'zlari", "")
+                    
+                    # So'zlarni qidirish
+                    for korean, uzbek in words.items():
+                        if search_word.lower() in korean.lower() or search_word.lower() in uzbek.lower():
+                            results.append({
+                                'korean': korean,
+                                'uzbek': uzbek,
+                                'location': f"{topic_num}>{question_num}"
+                            })
+        
+        # Natijalarni ko'rsatish
+        if results:
+            msg = f"🔍 <b>{search_word}</b> ({len(results)} ta)\n\n"
+            
+            for idx, r in enumerate(results[:20], 1):
+                msg += f"{idx}. <b>{r['korean']}</b> → {r['uzbek']}\n"
+                msg += f"   📍 {r['location']}\n"
+            
+            if len(results) > 20:
+                msg += f"\n... va yana {len(results) - 20} ta"
+            
+            bot.send_message(uid, msg, parse_mode='HTML')
+            return
+        # Agar topilmasa - keyingi bloklarga o'tish
+    
+    # ============================================
+    # 4) SO'Z TAHRIRLASH - salom=안녕 yoki 안녕=salom
+    # ============================================
+    if '=' in text and len(text) > 3:
+        parts = text.split('=', 1)
+        
+        if len(parts) == 2:
+            left = parts[0].strip()
+            right = parts[1].strip()
+            
+            if left and right:
+                # Ma'lumotlarni yuklash
+                data = load_user_data(uid)
+                
+                if not data:
+                    bot.send_message(uid, "❌ Lug'atingiz bo'sh!")
+                    return
+                
+                # Qidirish
+                found = []
+                
+                for topic_key, topic_data in data.items():
+                    if not topic_key.startswith("Topik-"):
+                        continue
+                    
+                    for section_name, questions in topic_data.items():
+                        for question_key, words in questions.items():
+                            for kr, uz in words.items():
+                                if left.lower() == kr.lower() or left.lower() == uz.lower():
+                                    found.append({
+                                        'topic_key': topic_key,
+                                        'section': section_name,
+                                        'question': question_key,
+                                        'old_kr': kr,
+                                        'old_uz': uz
+                                    })
+                
+                if not found:
+                    bot.send_message(uid, f"❌ <b>{left}</b> topilmadi", parse_mode='HTML')
+                    return
+                
+                if len(found) > 1:
+                    msg = f"❌ Ko'p natija: {len(found)} ta\n\n"
+                    msg += "Aniqroq kiriting yoki savol ichida tahrirlang"
+                    bot.send_message(uid, msg)
+                    return
+                
+                # Bitta natija - TAHRIRLASH
+                item = found[0]
+                
+                # Eski so'zni o'chirish
+                del data[item['topic_key']][item['section']][item['question']][item['old_kr']]
+                
+                # Yangi so'zni aniqlash
+                if is_korean(left):
+                    new_kr = left
+                    new_uz = right
+                elif is_korean(right):
+                    new_kr = right
+                    new_uz = left
+                else:
+                    # Ikkala tomon ham koreys emas
+                    new_kr = right if is_korean(item['old_kr']) else left
+                    new_uz = left if is_korean(item['old_kr']) else right
+                
+                # Yangi so'zni qo'shish
+                data[item['topic_key']][item['section']][item['question']][new_kr] = new_uz
+                
+                # Saqlash
+                save_user_data(uid, data)
+                
+                bot.send_message(
+                    uid,
+                    f"✅ Tahrirlandi!\n\n"
+                    f"<s>{item['old_kr']} → {item['old_uz']}</s>\n"
+                    f"<b>{new_kr} → {new_uz}</b>",
+                    parse_mode='HTML'
+                )
+                return
+    
+    # Hech biriga to'g'ri kelmadi - hech narsa qilmaymiz
 
 
 # ============================================
