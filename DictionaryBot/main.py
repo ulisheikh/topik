@@ -567,7 +567,7 @@ def callback_handler(call):
             section_display[section_type],
             question_num
         )
-        msg += "\n\n🗑 Barchasini o'chirish uchun: <code>rmall</code>"
+        msg += get_text(uid, 'rmall_hint')
         
         bot.send_message(uid, msg, parse_mode='HTML')
         
@@ -776,6 +776,99 @@ def callback_handler(call):
         )
 
     # ============================================
+    # RMALL TASDIQLASH: confirm_rmall_35_r_13
+    # ============================================
+    elif data_str.startswith('confirm_rmall_'):
+        parts = data_str.replace('confirm_rmall_', '').split('_')
+        topic_num, section_type, question_num = parts[0], parts[1], parts[2]
+        
+        topic_key = f'Topik-{topic_num}'
+        section_map = {'r': 'reading', 'w': 'writing', 'l': 'listening'}
+        section_name = section_map[section_type]
+        question_key = f'{question_num}-savol so\'zlari'
+        
+        data = load_user_data(uid)
+        
+        if not (topic_key in data and section_name in data[topic_key] and question_key in data[topic_key][section_name]):
+            bot.answer_callback_query(call.id, "❌ Topilmadi!")
+            return
+        
+        all_words = data[topic_key][section_name][question_key]
+        removed_count = len(all_words)
+        section_display = {'r': 'Reading', 'w': 'Writing', 'l': 'Listening'}
+        
+        if removed_count == 0:
+            bot.answer_callback_query(call.id, "❌ So'zlar yo'q!")
+            return
+        
+        # Backup (tiklash uchun)
+        create_backup(uid, 'question_words', dict(all_words), f"{topic_num}_{section_type}_{question_num}")
+        
+        data[topic_key][section_name][question_key] = {}
+        save_user_data(uid, data)
+        
+        msg = f"📍 <b>{topic_num}-topik > {section_display[section_type]} > {question_num}-savol</b>\n"
+        msg += "━━━━━━━━━━━━━━━━━\n\n"
+        msg += f"🗑 <b>Barcha so'zlar o'chirildi! ({removed_count} ta)</b>\n\n"
+        msg += get_text(uid, 'words_empty')
+        
+        markup = get_question_actions_inline(topic_num, section_type, question_num, False, uid)
+        
+        bot.edit_message_text(
+            msg,
+            uid,
+            call.message.id,
+            parse_mode='HTML',
+            reply_markup=markup
+        )
+        
+        bot.answer_callback_query(call.id, "✅ O'chirildi!")
+    
+    # ============================================
+    # RMALL BEKOR QILISH: cancel_rmall_35_r_13
+    # ============================================
+    elif data_str.startswith('cancel_rmall_'):
+        parts = data_str.replace('cancel_rmall_', '').split('_')
+        topic_num, section_type, question_num = parts[0], parts[1], parts[2]
+        
+        topic_key = f'Topik-{topic_num}'
+        section_map = {'r': 'reading', 'w': 'writing', 'l': 'listening'}
+        section_name = section_map[section_type]
+        question_key = f'{question_num}-savol so\'zlari'
+        
+        data = load_user_data(uid)
+        words = {}
+        if topic_key in data and section_name in data[topic_key] and question_key in data[topic_key][section_name]:
+            words = data[topic_key][section_name][question_key]
+        
+        section_display = {'r': 'Reading', 'w': 'Writing', 'l': 'Listening'}
+        
+        msg = get_text(uid, 'question_location').format(
+            topic_num,
+            section_display[section_type],
+            question_num
+        ) + '\n\n'
+        
+        if words:
+            msg += get_text(uid, 'words_title') + '\n'
+            for idx, (kr, uz) in enumerate(words.items(), 1):
+                msg += f'{idx}. {kr} → {uz}\n'
+            msg += '\n' + get_text(uid, 'words_count').format(len(words))
+        else:
+            msg += get_text(uid, 'words_empty')
+        
+        markup = get_question_actions_inline(topic_num, section_type, question_num, bool(words), uid)
+        
+        bot.edit_message_text(
+            msg,
+            uid,
+            call.message.id,
+            reply_markup=markup
+        )
+        
+        bot.answer_callback_query(call.id, "❌ Bekor qilindi")
+
+    # ============================================
     # SOZLAMALAR CALLBACKS
     # ============================================
     elif data_str == 'settings_language':
@@ -950,7 +1043,8 @@ def change_password_handlers(message):
 def handle_starred_words(uid):
     """
     Boshida '*' bo'lgan (muhim/yulduzli) so'zlarni butun
-    lug'atdan (barcha topik/bo'lim/savollardan) topib beradi.
+    lug'atdan (barcha topik/bo'lim/savollardan) topib, chiroyli
+    ro'yxat qilib beradi: shunchaki so'z → tarjima, hammasi bittada.
     """
     data = load_user_data(uid)
     results = []
@@ -959,33 +1053,38 @@ def handle_starred_words(uid):
         if not topic_key.startswith("Topik-"):
             continue
         
-        topic_num = topic_key.replace("Topik-", "")
-        
         for section_name, questions in topic_data.items():
             for question_key, words in questions.items():
-                question_num = question_key.replace("-savol so'zlari", "")
-                
                 for korean, uzbek in words.items():
                     if korean.strip().startswith('*'):
-                        results.append({
-                            'korean': korean,
-                            'uzbek': uzbek,
-                            'location': f"{topic_num}>{question_num}"
-                        })
+                        results.append((korean, uzbek))
     
-    if results:
-        msg = f"⭐ <b>Yulduzli so'zlar</b> ({len(results)} ta)\n\n"
-        
-        for idx, r in enumerate(results[:30], 1):
-            msg += f"{idx}. <b>{r['korean']}</b> → {r['uzbek']}\n"
-            msg += f"   📍 {r['location']}\n"
-        
-        if len(results) > 30:
-            msg += f"\n... va yana {len(results) - 30} ta"
-    else:
-        msg = "❌ Yulduzli so'zlar topilmadi"
+    if not results:
+        bot.send_message(uid, "❌ Yulduzli so'zlar topilmadi")
+        return
     
-    bot.send_message(uid, msg, parse_mode='HTML')
+    header = f"⭐ <b>YULDUZLI SO'ZLAR</b>\n"
+    header += f"━━━━━━━━━━━━━━━━━\n"
+    header += f"Jami: {len(results)} ta\n\n"
+    footer = f"\n━━━━━━━━━━━━━━━━━"
+    
+    # Telegram xabar chegarasi ~4096 belgi. Hammasini bittada
+    # yuborishga harakat qilamiz; faqat juda katta bo'lganda
+    # xavfsizlik uchun bir nechta xabarga bo'lib yuboramiz
+    # (hech qanday so'z kesib tashlanmaydi).
+    chunks = []
+    current = header
+    for idx, (kr, uz) in enumerate(results, 1):
+        line = f"{idx}. <b>{kr}</b> → {uz}\n"
+        if len(current) + len(line) > 3900:
+            chunks.append(current)
+            current = ""
+        current += line
+    current += footer
+    chunks.append(current)
+    
+    for chunk in chunks:
+        bot.send_message(uid, chunk, parse_mode='HTML')
 
 
 # ============================================
@@ -1192,26 +1291,36 @@ def handle_stateful_text(message, uid, text):
         
         # ------------------------------------------------------
         # RMALL: FAQAT joriy savol/bo'limdagi barcha so'zlarni o'chirish
+        # — avval tasdiqlash so'raladi, darhol o'chirmaydi
         # ------------------------------------------------------
         if text.strip().lower() == 'rmall':
             removed_count = len(all_words)
+            
+            # State'dan chiqamiz - endi javob tugma orqali keladi
+            if uid in user_context:
+                del user_context[uid]
             
             if removed_count == 0:
                 bot.send_message(uid, "❌ Bu savolda so'zlar yo'q!")
                 return
             
-            # Backup (tiklash uchun)
-            create_backup(uid, 'question_words', dict(all_words), f"{topic_num}_{section_type}_{question_num}")
+            msg = f"⚠️ <b>TASDIQLASH</b>\n\n"
+            msg += f"<b>{topic_num}-topik > {section_display[section_type]} > {question_num}-savol</b>\n"
+            msg += f"ichidagi <b>barcha {removed_count} ta so'zni</b> o'chirmoqchimisiz?\n\n"
+            msg += "❗ Ushbu amal ortga qaytarilmaydi (biroq backup saqlanadi)"
             
-            data[topic_key][section_name][question_key] = {}
-            save_user_data(uid, data)
+            markup = types.InlineKeyboardMarkup()
+            markup.row(
+                types.InlineKeyboardButton(
+                    text="✅ Ha, o'chirish",
+                    callback_data=f"confirm_rmall_{topic_num}_{section_type}_{question_num}"
+                ),
+                types.InlineKeyboardButton(
+                    text="❌ Yo'q",
+                    callback_data=f"cancel_rmall_{topic_num}_{section_type}_{question_num}"
+                )
+            )
             
-            msg = f"📍 <b>{topic_num}-topik > {section_display[section_type]} > {question_num}-savol</b>\n"
-            msg += "━━━━━━━━━━━━━━━━━\n\n"
-            msg += f"🗑 <b>Barcha so'zlar o'chirildi! ({removed_count} ta)</b>\n\n"
-            msg += get_text(uid, 'words_empty')
-            
-            markup = get_question_actions_inline(topic_num, section_type, question_num, False, uid)
             bot.send_message(uid, msg, parse_mode='HTML', reply_markup=markup)
             return
         
@@ -1290,6 +1399,12 @@ def handle_stateful_text(message, uid, text):
         
         markup = get_question_actions_inline(topic_num, section_type, question_num, bool(remaining_words), uid)
         bot.send_message(uid, msg, parse_mode='HTML', reply_markup=markup)
+        
+        # STATE dan chiqamiz - o'chirish faqat BITTA marta ishlaydi,
+        # qayta o'chirish uchun 🗑 tugmasi qaytadan bosilishi kerak
+        if uid in user_context:
+            del user_context[uid]
+        return
 
 
 # ============================================
@@ -1365,8 +1480,16 @@ def text_handler(message):
                 msg += f"\n... va yana {len(results) - 20} ta"
             
             bot.send_message(uid, msg, parse_mode='HTML')
-            return
-        # Agar topilmasa - keyingi bloklarga o'tish
+        else:
+            bot.send_message(
+                uid,
+                f"❌ <b>{search_word}</b> lug'atda mavjud emas",
+                parse_mode='HTML'
+            )
+        
+        # Qidiruv (topilsa ham, topilmasa ham) shu yerda tugaydi -
+        # boshqa hech qanday state yoki funksiyaga ta'sir qilmaydi
+        return
     
     # ============================================
     # 4) SO'Z TAHRIRLASH - salom=안녕 yoki 안녕=salom

@@ -48,6 +48,7 @@ TEXTS = {
         'enter_word_to_remove': '📍 Topik-{} > {} > {}-savol\n\nO\'chiriladigan so\'zni kiriting:\n\nMasalan:\n안녕\n감사합니다',
         'word_removed': '✅ "{}" o\'chirildi!',
         'word_not_found': '❌ So\'z topilmadi: "{}"',
+        'rmall_hint': '\n\n🗑 Shu savoldagi <b>barcha</b> so\'zlarni o\'chirish uchun: <code>rmall</code>\n(tasdiqlash so\'raladi)',
         
         # ORTGA
         'back_button': '◀️ Ortga',
@@ -148,7 +149,13 @@ TEXTS = {
             'Har yerdan shunchaki yozing:\n'
             '<code>안녕</code>  — koreys so\'z\n'
             '<code>salom</code>  — o\'zbek so\'z\n'
-            'yoki <code>s.so\'z</code> formatida ham ishlaydi'
+            'yoki <code>s.so\'z</code> formatida ham ishlaydi\n'
+            '💡 Topilmasa — "mavjud emas" deb xabar beradi\n\n'
+            '⭐ <b>YULDUZLI (MUHIM) SO\'ZLAR</b>\n'
+            'Lug\'at yaratganda so\'z boshiga <code>*</code> qo\'ysangiz, u '
+            '"muhim so\'z" hisoblanadi. Ularning barchasini ko\'rish uchun '
+            'har yerdan shunchaki <code>*</code> belgisini yuboring — '
+            'ro\'yxat darhol chiqadi'
         ),
         'help_edit': (
             '✏️ <b>SO\'Z TAHRIRLASH</b>\n'
@@ -159,11 +166,15 @@ TEXTS = {
         ),
         'help_delete': (
             '🗑 <b>SO\'Z O\'CHIRISH</b>\n'
-            'Savol ichida raqam yoki so\'z yozing:\n'
+            'Savol ichiga kirib 🗑 tugmasini bosing, so\'ng:\n'
             '<code>1</code>  — birinchi so\'zni o\'chirish\n'
             '<code>1,3,5</code>  — bir nechtasini o\'chirish\n'
             '<code>안녕</code>  — nomidan o\'chirish\n'
-            '<code>안녕,감사합니다</code>  — bir nechtasini nomidan'
+            '<code>안녕,감사합니다</code>  — bir nechtasini nomidan\n'
+            '<code>rmall</code>  — shu savoldagi <b>BARCHA</b> so\'zlarni '
+            'o\'chirish (avval tasdiqlash so\'raladi)\n'
+            '⚠️ Har safar faqat <b>bitta</b> o\'chirish amali bajariladi — '
+            'yana o\'chirish uchun 🗑 tugmasini qaytadan bosing'
         ),
         'help_export': (
             '📥 <b>EKSPORT</b>\n'
@@ -173,7 +184,7 @@ TEXTS = {
         'help_tip': (
             '━━━━━━━━━━━━━━━━━\n'
             '💡 <b>ESLATMALAR:</b>\n'
-            '• Qidirish va tahrirlash <b>har yerdan</b> ishlaydi\n'
+            '• Qidirish, yulduzli so\'zlar va tahrirlash <b>har yerdan</b> ishlaydi\n'
             '• So\'z o\'chirish faqat <b>savol ichida</b> ishlaydi\n'
             '• <b>/status</b> — tizim holati (Admin)\n'
             '• <b>/help</b> — shu yo\'riqnomani qayta ko\'rish'
@@ -182,7 +193,7 @@ TEXTS = {
         # BOT HAQIDA
         'about_bot': 'ℹ️ BOT HAQIDA\n\n'
                      '📚 Korean-O\'zbek Lug\'at Bot\n'
-                     '🤖 Versiya: 2.0\n'
+                     '🤖 Versiya: 2.1\n'
                      '👨‍💻 Yaratuvchi: sir🤫\n\n'
                      '📝 Tavsif:\n'
                      'Bu bot koreys tilini o\'rganuvchilar uchun shaxsiy lug\'at yaratish imkonini beradi.\n\n'
@@ -190,6 +201,7 @@ TEXTS = {
                      '• Shaxsiy lug\'at\n'
                      '• Ikki tilda (O\'zbek/Koreys)\n'
                      '• So\'zlarni saqlash va boshqarish\n'
+                     '• Yulduzli (muhim) so\'zlar\n'
                      '• Export (JSON/Python)\n'
                      '• Admin panel',
         # MAIN MENU TUGMASI
@@ -248,6 +260,7 @@ TEXTS = {
         'enter_word_to_remove': '📍 토픽-{} > {} > {}-질문\n\n삭제할 단어를 입력하세요:\n\n예:\n안녕\n감사합니다',
         'word_removed': '✅ "{}" 삭제됨!',
         'word_not_found': '❌ 단어를 찾을 수 없음: "{}"',
+        'rmall_hint': '\n\n🗑 이 질문의 <b>모든</b> 단어를 삭제하려면: <code>rmall</code>\n(확인 필요)',
         
         # ORTGA
         'back_button': '◀️ 뒤로',
@@ -348,7 +361,12 @@ TEXTS = {
             '어디서나 바로 입력:\n'
             '<code>안녕</code>  — 한국어 검색\n'
             '<code>salom</code>  — 우즈베크어 검색\n'
-            '또는 <code>s.단어</code> 형식도 가능'
+            '또는 <code>s.단어</code> 형식도 가능\n'
+            '💡 찾지 못하면 "존재하지 않음" 메시지가 표시됩니다\n\n'
+            '⭐ <b>중요(별표) 단어</b>\n'
+            '단어를 만들 때 앞에 <code>*</code>를 붙이면 "중요 단어"로 '
+            '표시됩니다. 모두 보려면 어디서나 <code>*</code>만 입력하세요 — '
+            '즉시 목록이 표시됩니다'
         ),
         'help_edit': (
             '✏️ <b>단어 수정</b>\n'
@@ -359,11 +377,15 @@ TEXTS = {
         ),
         'help_delete': (
             '🗑 <b>단어 삭제</b>\n'
-            '질문 안에서 번호나 단어를 입력:\n'
+            '질문 안에서 🗑 버튼을 누른 후:\n'
             '<code>1</code>  — 첫 번째 단어 삭제\n'
             '<code>1,3,5</code>  — 여러 개 삭제\n'
             '<code>안녕</code>  — 단어명으로 삭제\n'
-            '<code>안녕,감사합니다</code>  — 여러 개 단어명으로'
+            '<code>안녕,감사합니다</code>  — 여러 개 단어명으로\n'
+            '<code>rmall</code>  — 이 질문의 <b>모든</b> 단어 삭제 '
+            '(먼저 확인을 요청함)\n'
+            '⚠️ 한 번에 <b>하나</b>의 삭제 동작만 실행됩니다 — 다시 '
+            '삭제하려면 🗑 버튼을 다시 누르세요'
         ),
         'help_export': (
             '📥 <b>내보내기</b>\n'
@@ -373,7 +395,7 @@ TEXTS = {
         'help_tip': (
             '━━━━━━━━━━━━━━━━━\n'
             '💡 <b>참고사항:</b>\n'
-            '• 검색과 수정은 <b>어디서나</b> 가능\n'
+            '• 검색, 중요 단어, 수정은 <b>어디서나</b> 가능\n'
             '• 단어 삭제는 <b>질문 안에서만</b> 작동\n'
             '• <b>/status</b> — 시스템 상태 (관리자)\n'
             '• <b>/help</b> — 이 가이드 다시 보기'
@@ -382,7 +404,7 @@ TEXTS = {
         # BOT HAQIDA
         'about_bot': 'ℹ️ 봇 정보\n\n'
                      '📚 한국어-우즈베크어 사전 봇\n'
-                     '🤖 버전: 2.0\n'
+                     '🤖 버전: 2.1\n'
                      '👨‍💻 개발자: 비밀🤫\n\n'
                      '📝 설명:\n'
                      '이 봇은 한국어 학습자를 위한 개인 사전을 만들 수 있습니다.\n\n'
@@ -390,6 +412,7 @@ TEXTS = {
                      '• 개인 사전\n'
                      '• 두 언어 (우즈베크어/한국어)\n'
                      '• 단어 저장 및 관리\n'
+                     '• 중요(별표) 단어\n'
                      '• 내보내기 (JSON/Python)\n'
                      '• 관리자 패널',
         # MAIN MENU TUGMASI
