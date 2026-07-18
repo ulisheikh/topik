@@ -1,0 +1,45 @@
+[33mec081e1[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m)[m HEAD@{0}: reset: moving to ORIG_HEAD
+[33m6206c89[m[33m ([m[1;31morigin/main[m[33m)[m HEAD@{1}: rebase (finish): returning to refs/heads/main
+[33m6206c89[m[33m ([m[1;31morigin/main[m[33m)[m HEAD@{2}: rebase (continue): datalar serverdan push qilindi
+[33m6d76962[m HEAD@{3}: pull --rebase origin main (start): checkout 6d76962eddc7430f3b32fab53d8021c908e5f83d
+[33mec081e1[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m)[m HEAD@{4}: commit: datalar serverdan push qilindi
+[33m8a579e5[m HEAD@{5}: pull: Fast-forward
+[33m2d9ce24[m HEAD@{6}: pull: Fast-forward
+[33m41df175[m HEAD@{7}: pull: Fast-forward
+[33mcec8463[m HEAD@{8}: pull: Fast-forward
+[33m864b13c[m HEAD@{9}: pull: Fast-forward
+[33m0229b43[m HEAD@{10}: pull: Fast-forward
+[33med6a272[m HEAD@{11}: pull: Fast-forward
+[33m343c925[m HEAD@{12}: pull: Fast-forward
+[33m0a40108[m HEAD@{13}: pull: Fast-forward
+[33m62cc6d0[m HEAD@{14}: pull: Fast-forward
+[33m2130414[m HEAD@{15}: pull: Fast-forward
+[33m8e3f11f[m HEAD@{16}: pull: Fast-forward
+[33m91aecdc[m HEAD@{17}: pull: Fast-forward
+[33m28ba6b5[m HEAD@{18}: commit: update project
+[33m0197da5[m HEAD@{19}: pull: Fast-forward
+[33m8ad378e[m HEAD@{20}: commit: update dict files
+[33me1ba630[m HEAD@{21}: pull: Fast-forward
+[33m2ce3c70[m HEAD@{22}: pull: Fast-forward
+[33m2f0c51c[m HEAD@{23}: commit: added new words allwords 237
+[33mb400700[m HEAD@{24}: pull origin main: Merge made by the 'ort' strategy.
+[33m444f981[m HEAD@{25}: commit: update
+[33mf9faf36[m HEAD@{26}: pull: Fast-forward
+[33m82cd63b[m HEAD@{27}: pull origin main --rebase (finish): returning to refs/heads/main
+[33m82cd63b[m HEAD@{28}: pull origin main --rebase (start): checkout 82cd63bdc050857ab31d84bc2b8152d718ee21a9
+[33md1790c0[m HEAD@{29}: commit: Serverdagi pycache keshdan olib tashlandi
+[33mbf3b541[m HEAD@{30}: pull: Fast-forward
+[33m8974de4[m HEAD@{31}: pull: Fast-forward
+[33m4d8e5c8[m HEAD@{32}: commit: f
+[33mf18e416[m HEAD@{33}: pull: Fast-forward
+[33m5b5fd61[m HEAD@{34}: pull: Fast-forward
+[33m247a607[m HEAD@{35}: pull: Fast-forward
+[33m1d9f8f1[m HEAD@{36}: pull: Fast-forward
+[33m3a64c1e[m HEAD@{37}: commit: update config.py
+[33m04623f9[m HEAD@{38}: pull: Fast-forward
+[33m1aa5a21[m HEAD@{39}: pull: Fast-forward
+[33m33342da[m HEAD@{40}: pull: Fast-forward
+[33mdb5385e[m HEAD@{41}: pull: Fast-forward
+[33mbbce912[m HEAD@{42}: pull: Fast-forward
+[33m2c87d59[m HEAD@{43}: pull: Fast-forward
+[33m09874ab[m HEAD@{44}: initial pull
