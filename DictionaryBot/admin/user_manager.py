@@ -1,12 +1,15 @@
 """
 DictionaryBot - User boshqaruv moduli
 Userlar haqida to'liq ma'lumot
+YANGI: Bloklash/Blokdan chiqarish, faqat lug'atni o'chirish
+       (akkaunt ma'lumotlari saqlanib qoladi), himoyalangan userlar
 """
 
 import os
 import json
 from datetime import datetime
 from config import USER_DATA_DIR, DATABASE_DIR, USERS_INFO_FILE
+from utils.auth import is_protected_user, is_user_admin_blocked
 
 
 def ensure_users_info_file():
@@ -29,12 +32,21 @@ def save_user_info(user_id, first_name, last_name, username):
         except:
             users = {}
 
+    uid = str(user_id)
+
+    # Mavjud "blocked" va "joined_at" qiymatlarini SAQLAB QOLAMIZ -
+    # har safar /start bosilganda ular qayta yozilib ketmasligi kerak
+    existing = users.get(uid, {})
+    existing_blocked = existing.get('blocked', False)
+    existing_joined = existing.get('joined_at')
+
     # 2. Ma'lumot qo'shish
-    users[str(user_id)] = {
+    users[uid] = {
         "first_name": first_name if first_name else "",
         "last_name": last_name if last_name else "",
         "username": username if username else "",
-        "joined_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S") # joined_at deb nomlang
+        "joined_at": existing_joined if existing_joined else datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        "blocked": existing_blocked
     }
 
     # 3. Faylga yozish
@@ -46,32 +58,34 @@ def get_user_info(user_id):
     file_path = USERS_INFO_FILE
     
     if not os.path.exists(file_path) or os.stat(file_path).st_size == 0:
-        return {"first_name": "User", "last_name": "", "username": "", "joined_at": "Noma'lum"}
+        return {"first_name": "User", "last_name": "", "username": "", "joined_at": "Noma'lum", "blocked": False}
     
     try:
         with open(file_path, 'r', encoding='utf-8') as f:
             users = json.load(f)
-            return users.get(str(user_id), {"first_name": "User", "last_name": "", "username": "", "joined_at": "Noma'lum"})
+            return users.get(str(user_id), {"first_name": "User", "last_name": "", "username": "", "joined_at": "Noma'lum", "blocked": False})
     except:
-        return {"first_name": "User", "last_name": "", "username": "", "joined_at": "Noma'lum"}
+        return {"first_name": "User", "last_name": "", "username": "", "joined_at": "Noma'lum", "blocked": False}
 
 
 def get_all_users():
-    """Barcha userlar ro'yxati"""
-    if not os.path.exists(USER_DATA_DIR):
+    """
+    Barcha (botdan foydalangan) foydalanuvchilar ro'yxati.
+    YANGI: endi users_info.json asosida olinadi - shunda lug'ati
+    o'chirilgan userlar ham (akkaunt ma'lumoti saqlangani uchun)
+    ro'yxatda ko'rinib turaveradi.
+    """
+    ensure_users_info_file()
+    
+    if not os.path.exists(USERS_INFO_FILE) or os.stat(USERS_INFO_FILE).st_size == 0:
         return []
     
-    users = []
-    
-    for filename in os.listdir(USER_DATA_DIR):
-        if filename.startswith('user_') and filename.endswith('.json'):
-            if '.backup' in filename:
-                continue
-            
-            user_id = filename.replace('user_', '').replace('.json', '')
-            users.append(user_id)
-    
-    return users
+    try:
+        with open(USERS_INFO_FILE, 'r', encoding='utf-8') as f:
+            users = json.load(f)
+        return list(users.keys())
+    except:
+        return []
 
 
 def get_user_file(user_id):
@@ -126,7 +140,7 @@ def get_user_stats(user_id):
 
 
 def get_user_details(user_id):
-    """User to'liq ma'lumotlari"""
+    """User to'liq ma'lumotlari (blok holati va himoyalanganligi bilan)"""
     info = get_user_info(user_id)
     stats = get_user_stats(user_id)
     
@@ -138,7 +152,9 @@ def get_user_details(user_id):
         'joined_at': info['joined_at'],
         'topics': stats['topics'],
         'words': stats['words'],
-        'size': stats['size']
+        'size': stats['size'],
+        'blocked': is_user_admin_blocked(user_id),
+        'protected': is_protected_user(user_id)
     }
 
 
@@ -147,11 +163,19 @@ def format_user_details(current_user_id, details):
     full_name = f"{details['first_name']} {details['last_name']}".strip()
     username = f"@{details['username']}" if details['username'] else "Username yo'q"
     
+    if details.get('protected'):
+        status = "👑 Admin / Bot egasi (himoyalangan)"
+    elif details.get('blocked'):
+        status = "🔒 Bloklangan"
+    else:
+        status = "✅ Faol"
+    
     msg = f"📊 <b>Foydalanuvchi ma'lumotlari</b>\n\n"
     msg += f"👤 <b>Ism:</b> {full_name}\n"
     msg += f"🆔 <b>Username:</b> {username}\n"
     msg += f"📱 <b>ID:</b> <code>{details['user_id']}</code>\n"
-    msg += f"📅 <b>Qo'shilgan:</b> {details['joined_at']}\n\n"
+    msg += f"📅 <b>Qo'shilgan:</b> {details['joined_at']}\n"
+    msg += f"📌 <b>Holat:</b> {status}\n\n"
     msg += f"📚 <b>Topiklar:</b> {details['topics']} ta\n"
     msg += f"📝 <b>So'zlar:</b> {details['words']} ta\n"
     msg += f"💾 <b>Fayl hajmi:</b> {details['size']}\n"
@@ -160,7 +184,7 @@ def format_user_details(current_user_id, details):
 
 
 def format_users_list(current_user_id, users_list):
-    """Userlar ro'yxatini formatlash"""
+    """Userlar ro'yxatini formatlash (matn ko'rinishida, zaxira uchun)"""
     if not users_list:
         msg = "❌ Hech qanday foydalanuvchi topilmadi."
         return msg
@@ -173,7 +197,14 @@ def format_users_list(current_user_id, users_list):
         full_name = f"{details['first_name']} {details['last_name']}".strip()
         username = f"@{details['username']}" if details['username'] else "❌"
         
-        msg += f"📊 <b>#{idx}</b>\n"
+        if details.get('protected'):
+            status_icon = "👑"
+        elif details.get('blocked'):
+            status_icon = "🔒"
+        else:
+            status_icon = "✅"
+        
+        msg += f"📊 <b>#{idx}</b> {status_icon}\n"
         msg += f"├ 👤 {full_name}\n"
         msg += f"├ 🆔 {username}\n"
         msg += f"├ 📱 ID: <code>{user_id}</code>\n"
@@ -184,8 +215,81 @@ def format_users_list(current_user_id, users_list):
     return msg
 
 
+# ============================================
+# YANGI: BLOKLASH / BLOKDAN CHIQARISH
+# ============================================
+
+def set_user_blocked(user_id, blocked):
+    """
+    Foydalanuvchini DOIMIY bloklash yoki blokdan chiqarish
+    (users_info.json orqali saqlanadi).
+    
+    DIQQAT: Himoyalangan foydalanuvchilarni (admin / bot egasi)
+    bloklash SO'ZSIZ rad etiladi - hech qanday holatda ular
+    bloklanmaydi.
+    """
+    if blocked and is_protected_user(user_id):
+        return False
+    
+    ensure_users_info_file()
+    
+    with open(USERS_INFO_FILE, 'r', encoding='utf-8') as f:
+        users = json.load(f)
+    
+    uid = str(user_id)
+    if uid not in users:
+        return False
+    
+    users[uid]['blocked'] = blocked
+    
+    with open(USERS_INFO_FILE, 'w', encoding='utf-8') as f:
+        json.dump(users, f, ensure_ascii=False, indent=2)
+    
+    return True
+
+
+# ============================================
+# YANGI: FAQAT LUG'ATNI O'CHIRISH (akkaunt saqlanadi)
+# ============================================
+
+def delete_user_dictionary_only(user_id):
+    """
+    Foydalanuvchining FAQAT lug'at ma'lumotlarini butunlay o'chiradi
+    (user_data/user_X.json va uning .backup fayli).
+    
+    Akkaunt ma'lumotlari (users_info.json dagi ism, username,
+    qo'shilgan sana, blok holati) SAQLANIB QOLADI.
+    
+    DIQQAT: Himoyalangan foydalanuvchilarning (admin / bot egasi)
+    ma'lumotlari HECH QACHON o'chirilmaydi.
+    """
+    if is_protected_user(user_id):
+        return False
+    
+    user_file = get_user_file(user_id)
+    backup_file = f"{user_file}.backup"
+    
+    deleted = False
+    
+    if os.path.exists(user_file):
+        os.remove(user_file)
+        deleted = True
+    
+    if os.path.exists(backup_file):
+        os.remove(backup_file)
+    
+    return deleted
+
+
 def delete_user_data(user_id):
-    """User ma'lumotlarini o'chirish"""
+    """
+    ESKI FUNKSIYA (endi ishlatilmaydi, orqaga moslik uchun qoldirilgan).
+    Bu funksiya akkaunt ma'lumotini ham o'chiradi - buning o'rniga
+    delete_user_dictionary_only() dan foydalaning.
+    """
+    if is_protected_user(user_id):
+        return False
+    
     user_file = get_user_file(user_id)
     backup_file = f"{user_file}.backup"
     
@@ -214,6 +318,7 @@ def delete_user_data(user_id):
             json.dump(users, f, ensure_ascii=False, indent=2)
     
     return deleted
+
 def get_user_words_count(user_id):
     """User so'zlari sonini hisoblash"""
     user_file = get_user_file(user_id)
@@ -234,12 +339,3 @@ def get_user_words_count(user_id):
         return words
     except:
         return 0
-
-def block_user(user_id):
-    # Bu yerda foydalanuvchini bloklanganlar ro'yxatiga qo'shish kodi bo'ladi
-    # Masalan, database yoki json faylga status: blocked deb yozish
-    pass
-
-def unblock_user(user_id):
-    # Bu yerda blokdan chiqarish kodi
-    pass

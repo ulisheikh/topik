@@ -2,6 +2,9 @@
 """
 AUTENTIFIKATSIYA TIZIMI
 Parol va session boshqaruvi
+YANGI: Admin tomonidan doimiy bloklash (is_user_admin_blocked)
+YANGI: Himoyalangan foydalanuvchilar - admin va bot egasi
+       hech qachon bloklanmaydi/o'chirilmaydi (is_protected_user)
 """
 
 import json
@@ -34,32 +37,41 @@ import json
 import os
 
 def update_password(role, new_password):
-    # FAYL YO'LI ANIQLANDI:
-    file_path = "database/passwords.json" 
+    # FIX: nisbiy yo'l ("database/passwords.json") botni qayerdan ishga
+    # tushirishingizga qarab topilmasligi mumkin edi. Endi config.py dagi
+    # ABSOLYUT yo'l (PASSWORDS_FILE = BASE_DIR/database/passwords.json)
+    # ishlatiladi - bu qayerdan ishga tushirilishidan qat'iy nazar ishlaydi.
+    file_path = PASSWORDS_FILE
     
-    if os.path.exists(file_path):
-        try:
-            # 1. Asl faylni o'qiymiz
+    try:
+        os.makedirs(os.path.dirname(file_path), exist_ok=True)
+        
+        # 1. Asl faylni o'qiymiz (bo'lmasa - bo'sh dict bilan boshlaymiz)
+        data = {}
+        if os.path.exists(file_path) and os.stat(file_path).st_size > 0:
             with open(file_path, 'r', encoding='utf-8') as f:
                 data = json.load(f)
-            
-            # 2. Yangilaymiz
-            if role == 'user':
-                data['user_password'] = str(new_password)
-            elif role == 'admin':
-                data['admin_password'] = str(new_password)
-                
-            # 3. Aynan o'sha faylga qayta yozamiz
-            with open(file_path, 'w', encoding='utf-8') as f:
-                json.dump(data, f, indent=4, ensure_ascii=False)
-            
-            print(f"✅ Parol {file_path} ichida yangilandi!")
-            return True
-        except Exception as e:
-            print(f"❌ Faylga yozishda xato: {e}")
-            return False
-    else:
-        print(f"❌ Xato: {file_path} topilmadi!")
+        
+        # 2. Yangilaymiz
+        if role == 'user':
+            data['user_password'] = str(new_password)
+        elif role == 'admin':
+            data['admin_password'] = str(new_password)
+        
+        # Ikkinchi rolning eski qiymati yo'qolib qolmasligi uchun
+        if 'user_password' not in data:
+            data['user_password'] = DEFAULT_USER_PASSWORD
+        if 'admin_password' not in data:
+            data['admin_password'] = DEFAULT_ADMIN_PASSWORD
+        
+        # 3. Aynan o'sha faylga qayta yozamiz
+        with open(file_path, 'w', encoding='utf-8') as f:
+            json.dump(data, f, indent=4, ensure_ascii=False)
+        
+        print(f"✅ Parol {file_path} ichida yangilandi!")
+        return True
+    except Exception as e:
+        print(f"❌ Faylga yozishda xato: {e}")
         return False
 
 def load_sessions():
@@ -111,7 +123,10 @@ def verify_password(user_id, password):
     return None
 
 def is_user_blocked(user_id):
-    """Foydalanuvchi bloklangan yoki yo'qligini tekshirish"""
+    """
+    VAQTINCHALIK bloklash (noto'g'ri parol urinishlari sababli, 5 daqiqa).
+    Doimiy admin bloki uchun is_user_admin_blocked() dan foydalaning.
+    """
     if user_id in BLOCKED_USERS:
         if time.time() < BLOCKED_USERS[user_id]:
             return True
@@ -239,6 +254,46 @@ def change_password(role, new_password):
     passwords = load_passwords()
     passwords[role] = new_password
     save_passwords(passwords)
+
+
+# ============================================
+# YANGI: DOIMIY BLOKLASH TIZIMI (Admin panel)
+# ============================================
+
+def is_user_admin_blocked(user_id):
+    """
+    Foydalanuvchi administrator tomonidan DOIMIY bloklanganligini
+    tekshiradi (users_info.json fayli orqali saqlanadi).
+    Bu vaqtinchalik parol-urinish blokidan (is_user_blocked) farq qiladi.
+    """
+    if not os.path.exists(USERS_INFO_FILE):
+        return False
+    try:
+        with open(USERS_INFO_FILE, 'r', encoding='utf-8') as f:
+            users = json.load(f)
+        return bool(users.get(str(user_id), {}).get('blocked', False))
+    except:
+        return False
+
+
+def is_protected_user(user_id):
+    """
+    DIQQAT: Himoyalangan foydalanuvchi - ADMIN_ID (bot egasi) yoki
+    admin roli bilan tizimga kirgan har qanday foydalanuvchi.
+    Bunday userlar HECH QACHON bloklanmaydi va ma'lumotlari o'chirilmaydi.
+    Bu tekshiruv barcha bloklash/o'chirish funksiyalarida ishlatiladi.
+    """
+    try:
+        if int(user_id) == int(ADMIN_ID):
+            return True
+    except (TypeError, ValueError):
+        pass
+    
+    if is_admin(user_id):
+        return True
+    
+    return False
+
 
 # Default parollarni o'rnatish
 initialize_passwords()

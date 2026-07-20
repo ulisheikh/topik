@@ -1,8 +1,16 @@
 {
-    "5830567800": {
-        "first_name": "ULUGBEK",
-        "last_name": "MAHMUDOV",
-        "username": "ulugbek_mahmudov",
-        "joined_at": "2026-07-18 23:34:15"
-    }
+  "5830567800": {
+    "first_name": "ULUGBEK",
+    "last_name": "MAHMUDOV",
+    "username": "ulugbek_mahmudov",
+    "joined_at": "2026-07-18 23:34:15",
+    "blocked": false
+  },
+  "7475340295": {
+    "first_name": "Gulomov S",
+    "last_name": "",
+    "username": "",
+    "joined_at": "2026-07-21 05:48:44",
+    "blocked": false
+  }
 }

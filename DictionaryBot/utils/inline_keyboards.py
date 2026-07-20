@@ -2,6 +2,8 @@
 """
 INLINE KEYBOARDS - YANGI DIZAYN
 10x5 format, ➕ADD, 🗑 So'z o'chirish
+YANGI: Foydalanuvchilar ro'yxati (ism bilan) va har bir user uchun
+       Bloklash/Blokdan chiqarish + O'chirish tugmalari
 """
 
 from telebot.types import (
@@ -277,5 +279,75 @@ def get_admin_keyboard(uid):
     
     markup.row(btn1, btn2)
     markup.row(btn3, btn4)
+    
+    return markup
+
+
+# ============================================
+# YANGI: FOYDALANUVCHILARNI BOSHQARISH INLINE
+# ============================================
+
+def get_users_list_inline(users_details_list, uid):
+    """
+    Foydalanuvchilar ro'yxati - har biri ISM bilan alohida tugma.
+    users_details_list = get_user_details() natijalari ro'yxati:
+        [{'user_id':.., 'first_name':.., 'last_name':.., 
+          'blocked': bool, 'protected': bool}, ...]
+    
+    Tugma bosilsa -> user_detail_{user_id} callback ishga tushadi.
+    Ikonka: 👑 = himoyalangan (admin/egasi), 🔒 = bloklangan, 👤 = faol
+    """
+    lang = get_user_language(uid)
+    markup = InlineKeyboardMarkup(row_width=1)
+    
+    for d in users_details_list:
+        full_name = f"{d.get('first_name', '')} {d.get('last_name', '')}".strip()
+        if not full_name:
+            full_name = f"ID:{d['user_id']}"
+        
+        if d.get('protected'):
+            icon = "👑"
+        elif d.get('blocked'):
+            icon = "🔒"
+        else:
+            icon = "👤"
+        
+        markup.add(InlineKeyboardButton(
+            text=f"{icon} {full_name}",
+            callback_data=f"user_detail_{d['user_id']}"
+        ))
+    
+    back_text = '◀️ Ortga' if lang == 'uz' else '◀️ 뒤로'
+    markup.add(InlineKeyboardButton(text=back_text, callback_data='back_to_settings_menu'))
+    
+    return markup
+
+
+def get_user_detail_inline(user_id, is_blocked, is_protected, uid):
+    """
+    Bitta foydalanuvchi tafsilotlari sahifasidagi tugmalar:
+    - Bloklash / Blokdan chiqarish (bitta tugma, ikkita vazifa)
+    - Userni o'chirish (faqat lug'at ma'lumotlari)
+    - Ortga
+    
+    Himoyalangan (admin/bot egasi) foydalanuvchilar uchun bu
+    tugmalar UMUMAN ko'rsatilmaydi.
+    """
+    lang = get_user_language(uid)
+    markup = InlineKeyboardMarkup(row_width=1)
+    
+    if not is_protected:
+        if lang == 'uz':
+            block_text = "🔓 Blokdan chiqarish" if is_blocked else "🔒 Bloklash"
+            delete_text = "🗑️ Userni o'chirish"
+        else:
+            block_text = "🔓 차단 해제" if is_blocked else "🔒 차단"
+            delete_text = "🗑️ 사용자 삭제"
+        
+        markup.add(InlineKeyboardButton(text=block_text, callback_data=f"toggle_block_{user_id}"))
+        markup.add(InlineKeyboardButton(text=delete_text, callback_data=f"delete_user_{user_id}"))
+    
+    back_text = '◀️ Ortga' if lang == 'uz' else '◀️ 뒤로'
+    markup.add(InlineKeyboardButton(text=back_text, callback_data='settings_users'))
     
     return markup

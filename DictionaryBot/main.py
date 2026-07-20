@@ -1,13 +1,23 @@
 # -*- coding: utf-8 -*-
 """
 KOREAN-O'ZBEK LUG'AT BOT
-Yangilangan versiya - 2.1
+Yangilangan versiya - 2.2
 User-based tizim
 FIX: state (context) tekshiruvi endi eng birinchi bo'lib ishlaydi,
      shuning uchun so'z qo'shish/o'chirish paytida qidiruv/tahrirlash
      bilan aralashib ketmaydi.
 YANGI: "rmall" - joriy savoldagi barcha so'zlarni o'chirish
 YANGI: "*" - butun lug'atdan yulduzli (muhim) so'zlarni topish
+YANGI (2.2): FOYDALANUVCHILARNI BOSHQARISH
+   - 👥 Users tugmasi bosilsa -> har bir user ISM bilan inline tugmada chiqadi
+   - User tugmasi bosilsa -> to'liq ma'lumoti (holati bilan) chiqadi
+   - 🔒/🔓 Bloklash-Blokdan chiqarish (bitta tugma, ikkita vazifa)
+   - 🗑️ Userni o'chirish - FAQAT lug'at ma'lumotlari o'chadi,
+     akkaunt ma'lumotlari (ism, username) saqlanib qoladi.
+     Har doim tasdiqlash so'raladi.
+   - Parolni o'zgartirish endi: avval ESKI parol, keyin YANGI parol
+   - DIQQAT: ADMIN va BOT EGASI (ADMIN_ID) HECH QACHON
+     bloklanmaydi va ma'lumotlari o'chirilmaydi (is_protected_user)
 """
 
 import telebot
@@ -34,7 +44,9 @@ from utils.inline_keyboards import (
     get_topics_inline,
     get_sections_inline,
     get_questions_inline,
-    get_question_actions_inline
+    get_question_actions_inline,
+    get_users_list_inline,
+    get_user_detail_inline
 )
 
 from pathlib import Path
@@ -88,6 +100,19 @@ def get_location_text(user_id):
     
     return "📍 " + " > ".join(location)
 
+
+def check_and_notify_blocked(uid):
+    """
+    Agar foydalanuvchi administrator tomonidan DOIMIY bloklangan bo'lsa
+    (va himoyalangan - admin/bot egasi - bo'lmasa), unga xabar yuboradi
+    va True qaytaradi. Chaqiruvchi handler shu holatda darhol return
+    qilishi kerak.
+    """
+    if is_user_admin_blocked(uid) and not is_protected_user(uid):
+        bot.send_message(uid, "🚫 Siz administrator tomonidan bloklangansiz.\nBot bilan ishlash imkoni yo'q.")
+        return True
+    return False
+
 # ============================================
 # START VA AUTENTIFIKATSIYA
 # ============================================
@@ -109,18 +134,22 @@ def start_handler(message):
         message.from_user.username
     )
     
-    # 2. Bloklanganlikni tekshirish
+    # 2. DOIMIY (admin tomonidan) bloklanganlikni tekshirish
+    if check_and_notify_blocked(uid):
+        return
+    
+    # 3. VAQTINCHALIK (parol urinishi) bloklanganlikni tekshirish
     if is_user_blocked(uid):
         bot.send_message(uid, get_text(uid, 'password_blocked'))
         return
 
-    # 3. Login tekshirish
+    # 4. Login tekshirish
     if not is_logged_in(uid):
         bot.send_message(uid, get_text(uid, 'enter_password'), parse_mode="HTML")
         bot.register_next_step_handler(message, password_handler)
         return
     
-    # 4. Statistika tayyorlash
+    # 5. Statistika tayyorlash
     from admin.user_manager import get_all_users
     
     # Topiklar soni
@@ -140,7 +169,7 @@ def start_handler(message):
         words=words_count
     )
     
-    # 5. FAQAT Welcome + Stats (Help ALOHIDA!)
+    # 6. FAQAT Welcome + Stats (Help ALOHIDA!)
     combined_msg = f"{get_text(uid, 'welcome')}\n\n{stats_msg}"
     
     bot.send_message(
@@ -159,6 +188,9 @@ def help_handler(message):
     """Yordam matni"""
     uid = message.from_user.id
     
+    if check_and_notify_blocked(uid):
+        return
+    
     # Login tekshirish
     if not is_logged_in(uid):
         bot.send_message(uid, get_text(uid, 'enter_password'))
@@ -175,7 +207,11 @@ def password_handler(message):
     uid = message.from_user.id
     password = message.text.strip()
     
-    # Bloklangan userlarni tekshirish
+    # Doimiy admin bloki
+    if check_and_notify_blocked(uid):
+        return
+    
+    # Bloklangan userlarni tekshirish (vaqtinchalik)
     if is_user_blocked(uid):
         bot.send_message(uid, get_text(uid, 'password_blocked'))
         return
@@ -217,6 +253,9 @@ def sections_handler(message):
     """BO'LIMLAR bosilsa -> Topiklar inline chiqadi"""
     uid = message.from_user.id
     
+    if check_and_notify_blocked(uid):
+        return
+    
     if not is_logged_in(uid):
         bot.send_message(uid, get_text(uid, 'enter_password'))
         return
@@ -254,6 +293,9 @@ def settings_handler(message):
     """Sozlamalar menyusi - INLINE"""
     uid = message.from_user.id
     
+    if check_and_notify_blocked(uid):
+        return
+    
     if not is_logged_in(uid):
         bot.send_message(uid, get_text(uid, 'enter_password'))
         return
@@ -289,6 +331,9 @@ def export_json_handler(message):
     """JSON export"""
     uid = message.from_user.id
     
+    if check_and_notify_blocked(uid):
+        return
+    
     if not is_logged_in(uid):
         bot.send_message(uid, get_text(uid, 'enter_password'))
         return
@@ -309,6 +354,9 @@ def export_json_handler(message):
 def export_python_handler(message):
     """Python export"""
     uid = message.from_user.id
+    
+    if check_and_notify_blocked(uid):
+        return
     
     if not is_logged_in(uid):
         bot.send_message(uid, get_text(uid, 'enter_password'))
@@ -346,7 +394,9 @@ from admin.user_manager import (
     get_all_users, 
     format_users_list, 
     get_user_details,
-    format_user_details
+    format_user_details,
+    set_user_blocked,
+    delete_user_dictionary_only
 )
 
 # ============================================
@@ -358,6 +408,11 @@ def callback_handler(call):
     """Barcha inline tugmalar uchun"""
     uid = call.from_user.id
     data_str = call.data
+    
+    # Doimiy admin bloki - bloklangan user hech qanday tugmani bosolmaydi
+    if is_user_admin_blocked(uid) and not is_protected_user(uid):
+        bot.answer_callback_query(call.id, "🚫 Siz administrator tomonidan bloklangansiz.", show_alert=True)
+        return
     
     # ============================================
     # TOPIK TANLASH: topic_35
@@ -930,37 +985,254 @@ def callback_handler(call):
             reply_markup=markup
         )
     
+    # ============================================
+    # YANGI: PAROLNI O'ZGARTIRISH (avval eski, keyin yangi)
+    # ============================================
     elif data_str == 'settings_password':
-        lang = get_user_language(uid)
-        markup = types.InlineKeyboardMarkup()
-        markup.add(types.InlineKeyboardButton('◀️ Ortga' if lang == 'uz' else '◀️ 뒤로', callback_data='settings_back'))
+        if not is_admin(uid):
+            bot.answer_callback_query(call.id, "❌ Faqat admin parolni o'zgartira oladi!")
+            return
         
-        msg = "🔐 Parolni o'zgartirish:\n\n/newpass_user YANGI_PAROL\n/newpass_admin YANGI_PAROL" if lang == 'uz' else "🔐 비밀번호 변경:\n\n/newpass_user NEW_PASSWORD\n/newpass_admin NEW_PASSWORD"
+        lang = get_user_language(uid)
+        markup = types.InlineKeyboardMarkup(row_width=1)
+        
+        if lang == 'uz':
+            markup.add(types.InlineKeyboardButton('👤 User paroli', callback_data='changepass_user'))
+            markup.add(types.InlineKeyboardButton('👑 Admin paroli', callback_data='changepass_admin'))
+            markup.add(types.InlineKeyboardButton('◀️ Ortga', callback_data='back_to_settings_menu'))
+            msg = "🔐 <b>PAROLNI O'ZGARTIRISH</b>\n\nQaysi parolni o'zgartirmoqchisiz?"
+        else:
+            markup.add(types.InlineKeyboardButton('👤 사용자 비밀번호', callback_data='changepass_user'))
+            markup.add(types.InlineKeyboardButton('👑 관리자 비밀번호', callback_data='changepass_admin'))
+            markup.add(types.InlineKeyboardButton('◀️ 뒤로', callback_data='back_to_settings_menu'))
+            msg = "🔐 <b>비밀번호 변경</b>\n\n어떤 비밀번호를 변경하시겠습니까?"
         
         bot.edit_message_text(
             msg,
             uid,
             call.message.id,
+            parse_mode="HTML",
             reply_markup=markup
         )
     
+    elif data_str in ('changepass_user', 'changepass_admin'):
+        if not is_admin(uid):
+            bot.answer_callback_query(call.id, "❌ Faqat admin parolni o'zgartira oladi!")
+            return
+        
+        role = 'user' if data_str == 'changepass_user' else 'admin'
+        
+        user_context[uid] = {
+            'action': 'change_password_old',
+            'role': role
+        }
+        
+        lang = get_user_language(uid)
+        if lang == 'uz':
+            msg = f"🔐 <b>{role.upper()} PAROLINI O'ZGARTIRISH</b>\n\n🔑 Avval ESKI parolni kiriting:"
+        else:
+            msg = f"🔐 <b>{role.upper()} 비밀번호 변경</b>\n\n🔑 먼저 기존 비밀번호를 입력하세요:"
+        
+        bot.send_message(uid, msg, parse_mode='HTML')
+        bot.answer_callback_query(call.id)
+    
+    # ============================================
+    # YANGI: FOYDALANUVCHILAR RO'YXATI (ISM bilan tugmalar)
+    # ============================================
     elif data_str == 'settings_users':
         if not is_admin(uid):
             bot.answer_callback_query(call.id, "❌ Admin emas!")
             return
         
         users = get_all_users()
-        lang = get_user_language(uid)
-        markup = types.InlineKeyboardMarkup()
-        markup.add(types.InlineKeyboardButton('◀️ Ortga' if lang == 'uz' else '◀️ 뒤로', callback_data='settings_back'))
+        users_details = [get_user_details(u) for u in users]
         
-        msg = format_users_list(uid, users)
+        markup = get_users_list_inline(users_details, uid)
+        
+        msg = f"👥 <b>Foydalanuvchilar</b> — {len(users)} ta\n"
+        msg += "👑 admin · 🔒 blok · 👤 faol"
         
         bot.edit_message_text(
             msg,
             uid,
             call.message.id,
             parse_mode='HTML',
+            reply_markup=markup
+        )
+    
+    # ============================================
+    # YANGI: BITTA USER TAFSILOTI
+    # ============================================
+    elif data_str.startswith('user_detail_'):
+        if not is_admin(uid):
+            bot.answer_callback_query(call.id, "❌ Admin emas!")
+            return
+        
+        target_id = data_str.replace('user_detail_', '')
+        details = get_user_details(target_id)
+        
+        msg = format_user_details(uid, details)
+        markup = get_user_detail_inline(target_id, details['blocked'], details['protected'], uid)
+        
+        bot.edit_message_text(
+            msg,
+            uid,
+            call.message.id,
+            parse_mode='HTML',
+            reply_markup=markup
+        )
+        bot.answer_callback_query(call.id)
+    
+    # ============================================
+    # YANGI: BLOKLASH / BLOKDAN CHIQARISH (bitta tugma)
+    # ============================================
+    elif data_str.startswith('toggle_block_'):
+        if not is_admin(uid):
+            bot.answer_callback_query(call.id, "❌ Admin emas!")
+            return
+        
+        target_id = data_str.replace('toggle_block_', '')
+        
+        # DIQQAT: himoyalangan (admin/bot egasi) userlarni bloklab bo'lmaydi
+        if is_protected_user(target_id):
+            bot.answer_callback_query(
+                call.id,
+                "🚫 Bu foydalanuvchi himoyalangan (admin/bot egasi) - bloklab bo'lmaydi!",
+                show_alert=True
+            )
+            return
+        
+        current_details = get_user_details(target_id)
+        new_status = not current_details['blocked']
+        
+        success = set_user_blocked(target_id, new_status)
+        
+        if success:
+            alert = "🔒 Foydalanuvchi bloklandi!" if new_status else "✅ Foydalanuvchi blokdan chiqarildi!"
+            bot.answer_callback_query(call.id, alert)
+        else:
+            bot.answer_callback_query(call.id, "❌ Amalga oshmadi!")
+        
+        # Sahifani yangilash
+        details = get_user_details(target_id)
+        msg = format_user_details(uid, details)
+        markup = get_user_detail_inline(target_id, details['blocked'], details['protected'], uid)
+        
+        bot.edit_message_text(
+            msg,
+            uid,
+            call.message.id,
+            parse_mode='HTML',
+            reply_markup=markup
+        )
+    
+    # ============================================
+    # YANGI: USERNI O'CHIRISH - TASDIQLASH SO'RASH
+    # (faqat lug'at ma'lumotlari o'chadi, akkaunt qoladi)
+    # ============================================
+    elif data_str.startswith('delete_user_'):
+        if not is_admin(uid):
+            bot.answer_callback_query(call.id, "❌ Admin emas!")
+            return
+        
+        target_id = data_str.replace('delete_user_', '')
+        
+        # DIQQAT: himoyalangan (admin/bot egasi) userlarni o'chirib bo'lmaydi
+        if is_protected_user(target_id):
+            bot.answer_callback_query(
+                call.id,
+                "🚫 Bu foydalanuvchi himoyalangan (admin/bot egasi) - o'chirib bo'lmaydi!",
+                show_alert=True
+            )
+            return
+        
+        details = get_user_details(target_id)
+        full_name = f"{details['first_name']} {details['last_name']}".strip()
+        
+        msg = f"⚠️ <b>TASDIQLASH</b>\n\n"
+        msg += f"<b>{full_name}</b> (ID: <code>{target_id}</code>)\n"
+        msg += f"ning LUG'AT ma'lumotlarini butunlay o'chirmoqchimisiz?\n\n"
+        msg += f"📚 Topiklar: {details['topics']} ta\n"
+        msg += f"📝 So'zlar: {details['words']} ta\n\n"
+        msg += "ℹ️ Akkaunt ma'lumotlari (ism, username) saqlanib qoladi.\n"
+        msg += "❗ Lug'at ma'lumotlari ortga qaytarilmaydi!"
+        
+        markup = types.InlineKeyboardMarkup()
+        markup.row(
+            types.InlineKeyboardButton(text="✅ Ha, o'chirish", callback_data=f"confirm_deluser_{target_id}"),
+            types.InlineKeyboardButton(text="❌ Yo'q", callback_data=f"user_detail_{target_id}")
+        )
+        
+        bot.edit_message_text(
+            msg,
+            uid,
+            call.message.id,
+            parse_mode="HTML",
+            reply_markup=markup
+        )
+        bot.answer_callback_query(call.id)
+    
+    # ============================================
+    # YANGI: USERNI O'CHIRISHNI TASDIQLASH
+    # ============================================
+    elif data_str.startswith('confirm_deluser_'):
+        if not is_admin(uid):
+            bot.answer_callback_query(call.id, "❌ Admin emas!")
+            return
+        
+        target_id = data_str.replace('confirm_deluser_', '')
+        
+        # Yana bir bor DIQQAT bilan tekshiramiz - himoyalangan bo'lsa hech qachon o'chmaydi
+        if is_protected_user(target_id):
+            bot.answer_callback_query(
+                call.id,
+                "🚫 Bu foydalanuvchi himoyalangan (admin/bot egasi) - o'chirib bo'lmaydi!",
+                show_alert=True
+            )
+            return
+        
+        delete_user_dictionary_only(target_id)
+        
+        msg = f"✅ <b>Foydalanuvchi (ID: {target_id}) lug'at ma'lumotlari o'chirildi!</b>\n\n"
+        msg += "ℹ️ Akkaunt ma'lumotlari (ism, username, qo'shilgan sana) saqlanib qoldi."
+        
+        markup = types.InlineKeyboardMarkup()
+        markup.add(types.InlineKeyboardButton(text="◀️ Userlar ro'yxati", callback_data="settings_users"))
+        
+        bot.edit_message_text(
+            msg,
+            uid,
+            call.message.id,
+            parse_mode="HTML",
+            reply_markup=markup
+        )
+        
+        bot.answer_callback_query(call.id, "✅ O'chirildi!")
+    
+    # ============================================
+    # SOZLAMALAR MENYUSIGA QAYTISH (users ro'yxatidan/parol menyusidan)
+    # ============================================
+    elif data_str == 'back_to_settings_menu':
+        lang = get_user_language(uid)
+        markup = types.InlineKeyboardMarkup(row_width=1)
+        
+        if lang == 'uz':
+            markup.add(types.InlineKeyboardButton('👥 users', callback_data='settings_users'))
+            markup.add(types.InlineKeyboardButton('🌐 language', callback_data='settings_language'))
+            markup.add(types.InlineKeyboardButton('🔐 password', callback_data='settings_password'))
+            markup.add(types.InlineKeyboardButton('ℹ️ about', callback_data='settings_about'))
+            markup.add(types.InlineKeyboardButton('🔙 back', callback_data='settings_back'))
+        else:
+            markup.add(types.InlineKeyboardButton('👥 사용자', callback_data='settings_users'))
+            markup.add(types.InlineKeyboardButton('🌐 언어', callback_data='settings_language'))
+            markup.add(types.InlineKeyboardButton('🔐 비밀번호', callback_data='settings_password'))
+            markup.add(types.InlineKeyboardButton('ℹ️ 정보', callback_data='settings_about'))
+            markup.add(types.InlineKeyboardButton('🔙 뒤로', callback_data='settings_back'))
+        
+        bot.edit_message_text(
+            get_text(uid, 'settings_menu'),
+            uid,
+            call.message.id,
             reply_markup=markup
         )
     
@@ -982,6 +1254,9 @@ def callback_handler(call):
 @bot.message_handler(commands=['status'])
 def status_command_handler(message):
     uid = message.from_user.id
+    
+    if check_and_notify_blocked(uid):
+        return
     
     # 1. Login tekshirish
     if not is_logged_in(uid):
@@ -1008,32 +1283,37 @@ def status_command_handler(message):
 
 # ============================================
 # PAROL O'ZGARTIRISH BUYRUQLARI
+# YANGI: endi bu komandalar ham AVVAL ESKI, KEYIN YANGI parol
+# so'raydigan bitta oqim (state) ni ishga tushiradi - argument
+# sifatida parol yuborish endi ishlamaydi (xavfsizroq).
 # ============================================
 @bot.message_handler(commands=['newpass_user', 'newpass_admin'])
 def change_password_handlers(message):
     uid = message.from_user.id
-    text = message.text
+    
+    if check_and_notify_blocked(uid):
+        return
     
     if not is_logged_in(uid):
         bot.reply_to(message, "⚠️ Avval botga kiring!")
         return
-
-    parts = text.split()
-    if len(parts) < 2:
-        cmd = parts[0]
-        bot.reply_to(message, f"⚠️ Xato! Parolni ham yozing.\nMisol: `{cmd} 8888`", parse_mode="Markdown")
+    
+    if not is_admin(uid):
+        bot.reply_to(message, "❌ Bu buyruq faqat admin uchun!")
         return
-
-    new_pwd = parts[1]
     
-    # Qaysi parolni o'zgartirishni aniqlaymiz
-    role = 'user' if 'newpass_user' in text else 'admin'
+    role = 'user' if 'newpass_user' in message.text else 'admin'
     
-    # FAYLGA SAQLASH (Tepada yozgan funksiyamiz)
-    if update_password(role, new_pwd):
-        bot.reply_to(message, f"✅ {role.capitalize()} paroli muvaffaqiyatli o'zgartirildi: `{new_pwd}`", parse_mode="Markdown")
-    else:
-        bot.reply_to(message, "❌ Xatolik yuz berdi. passwords.json faylini tekshiring.")
+    user_context[uid] = {
+        'action': 'change_password_old',
+        'role': role
+    }
+    
+    bot.reply_to(
+        message,
+        f"🔐 <b>{role.upper()} PAROLINI O'ZGARTIRISH</b>\n\n🔑 Avval ESKI parolni kiriting:",
+        parse_mode="HTML"
+    )
 
 
 # ============================================
@@ -1211,6 +1491,42 @@ def handle_stateful_text(message, uid, text):
         except Exception as e:
             bot.send_message(uid, f"❌ Xatolik: {e}")
             user_context[uid]['action'] = None
+    
+    # ============================================
+    # YANGI: PAROLNI O'ZGARTIRISH - ESKI PAROL
+    # ============================================
+    elif action == 'change_password_old':
+        role = ctx['role']
+        passwords = load_passwords()
+        current_pwd = passwords.get(f'{role}_password')
+        
+        if current_pwd is None:
+            current_pwd = DEFAULT_ADMIN_PASSWORD if role == 'admin' else DEFAULT_USER_PASSWORD
+        
+        if text.strip() != str(current_pwd):
+            bot.send_message(uid, "❌ Eski parol noto'g'ri! Qaytadan urinib ko'ring:")
+            return
+        
+        user_context[uid] = {'action': 'change_password_new', 'role': role}
+        bot.send_message(uid, "✅ Eski parol to'g'ri!\n\n🔑 Endi YANGI parolni kiriting:")
+    
+    # ============================================
+    # YANGI: PAROLNI O'ZGARTIRISH - YANGI PAROL
+    # ============================================
+    elif action == 'change_password_new':
+        role = ctx['role']
+        new_pwd = text.strip()
+        
+        if len(new_pwd) < 4:
+            bot.send_message(uid, "❌ Parol kamida 4 ta belgidan iborat bo'lishi kerak! Qaytadan kiriting:")
+            return
+        
+        if update_password(role, new_pwd):
+            bot.send_message(uid, f"✅ <b>{role.capitalize()} paroli muvaffaqiyatli o'zgartirildi!</b>", parse_mode="HTML")
+        else:
+            bot.send_message(uid, "❌ Xatolik yuz berdi. passwords.json faylini tekshiring.")
+        
+        del user_context[uid]
     
     # ============================================
     # SO'Z QO'SHISH
@@ -1418,12 +1734,17 @@ def text_handler(message):
     text = message.text.strip()
     
     # ============================================
+    # 0) DOIMIY ADMIN BLOKI - hamma narsadan oldin!
+    # ============================================
+    if check_and_notify_blocked(uid):
+        return
+    
+    # ============================================
     # 1) STATE (CONTEXT) BOR-YO'QLIGINI TEKSHIRISH — ENG BIRINCHI!
     # Muhim: agar user biror action ichida bo'lsa (so'z qo'shish,
-    # so'z o'chirish, topik yaratish/o'chirish va h.k.), o'sha action
-    # DARHOL bajariladi va pastdagi qidiruv/tahrirlash bloklariga
-    # umuman kirmaydi. Aynan shu joy bo'lmagani sababli oldin
-    # "so'z o'chirish" state'i qidiruv bilan aralashib ketardi.
+    # so'z o'chirish, topik yaratish/o'chirish, parol o'zgartirish
+    # va h.k.), o'sha action DARHOL bajariladi va pastdagi
+    # qidiruv/tahrirlash bloklariga umuman kirmaydi.
     # ============================================
     if uid in user_context and user_context[uid].get('action'):
         handle_stateful_text(message, uid, text)

@@ -1,29 +1,64 @@
-# Virtual Environment
-venv/
-env/
-ENV/
-
-# Python cache
+# ==========================
+# Python
+# ==========================
 __pycache__/
-*.pyc
-*.pyo
-*.pyd
+*.py[cod]
+*$py.class
 .Python
 
+# ==========================
+# Virtual Environment
+# ==========================
+venv/
+.venv/
+env/
+
+# ==========================
 # IDE
+# ==========================
 .vscode/
 .idea/
 
-# Database
-*.db
-*.db-journal
+# ==========================
+# Environment
+# ==========================
+.env
 
+# ==========================
 # Logs
+# ==========================
 *.log
 
-# OS
+# ==========================
+# OS Files
+# ==========================
 .DS_Store
 Thumbs.db
 
-# Env files
-.env
+# ==========================
+# SQLite Databases
+# ==========================
+*.db
+*.db-journal
+
+# ==========================
+# User Data (DO NOT COMMIT)
+# ==========================
+database/
+DictionaryBot/database/
+DictionaryBot/user_data/
+DictionaryBot/backups/
+
+# JSON files containing user data
+DictionaryBot/users.json
+DictionaryBot/database/*.json
+
+# Temporary files
+temp_exams/
+
+# ==========================
+# Cache
+# ==========================
+.pytest_cache/
+.mypy_cache/
+.cache/
